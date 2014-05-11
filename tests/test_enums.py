@@ -24,7 +24,6 @@ if PY26:
 else:
     from unittest import TestCase, skipUnless
 
-from pyfarm.core.sysinfo.system import operating_system
 from pyfarm.core.enums import (
     OS, WorkState, AgentState, OperatingSystem, UseAgentAddress,
     _WorkState, _AgentState, STRING_TYPES, NUMERIC_TYPES,
@@ -201,18 +200,6 @@ class TestEnums(TestCase):
     @skipUnless(sys.platform.startswith("linux"), "Not Linux")
     def test_linux(self):
         self.assertTrue(LINUX)
-
-    def test_os(self):
-        self.assertEqual(operating_system("linux"), OperatingSystem.LINUX)
-        self.assertEqual(operating_system("win"), OperatingSystem.WINDOWS)
-        self.assertEqual(operating_system("darwin"), OperatingSystem.MAC)
-        self.assertEqual(operating_system("FOO"), OperatingSystem.OTHER)
-        self.assertEqual(OS, operating_system())
-        self.assertEqual(LINUX, OS == OperatingSystem.LINUX)
-        self.assertEqual(MAC, OS == OperatingSystem.MAC)
-        self.assertEqual(WINDOWS, OS == OperatingSystem.WINDOWS)
-        self.assertEqual(POSIX,
-                         OS in (OperatingSystem.LINUX, OperatingSystem.MAC))
 
     def test_cast_enum(self):
         Values.check_uniqueness = False

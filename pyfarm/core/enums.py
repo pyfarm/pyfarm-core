@@ -194,10 +194,6 @@ PY2 = PY_MAJOR == 2
 PY26 = PY_VERSION == (2, 6)
 PY27 = PY_VERSION == (2, 7)
 
-from pyfarm.core.sysinfo.system import (
-    filesystem_is_case_sensitive, environment_is_case_sensitive,
-    machine_architecture, interpreter_architecture, operating_system)
-
 try:  # pragma: no cover
     STRING_TYPES = (str, unicode)
     NUMERIC_TYPES = (int, long, float, complex)
@@ -447,19 +443,26 @@ FAILED_WORK_STATES = set([
 DB_FAILED_WORK_STATES = set([
     DBWorkState.FAILED])
 
+
+def operating_system(plat=sys.platform):
+    """
+    Returns the operating system for the given platform.  Please
+    note that while you can call this function directly you're more
+    likely better off using values in :mod:`pyfarm.core.enums` instead.
+    """
+    if plat.startswith("linux"):
+        return "linux"
+    elif plat.startswith("win"):
+        return "windows"
+    elif plat.startswith("darwin"):
+        return "mac"
+    else:
+        return "other"
+
+
 # operating system information
 OS = operating_system()
 POSIX = OS in (OperatingSystem.LINUX, OperatingSystem.MAC)
 WINDOWS = OS == OperatingSystem.WINDOWS
 LINUX = OS == OperatingSystem.LINUX
 MAC = OS == OperatingSystem.MAC
-
-# system information
-CASE_SENSITIVE_FILESYSTEM = filesystem_is_case_sensitive()
-CASE_SENSITIVE_ENVIRONMENT = environment_is_case_sensitive()
-ARCHITECTURE = machine_architecture()
-ARCHITECTURE64 = ARCHITECTURE == 64
-ARCHITECTURE32 = ARCHITECTURE == 32
-INTERPRETER_ARCHITECTURE = interpreter_architecture()
-INTERPRETER_ARCHITECTURE32 = INTERPRETER_ARCHITECTURE == 32
-INTERPRETER_ARCHITECTURE64 = INTERPRETER_ARCHITECTURE == 64
