@@ -22,28 +22,7 @@ assert sys.version_info[0:2] >= (2, 6), "Python 2.6 or higher is required"
 from os.path import isfile
 from setuptools import setup
 
-install_requires = [
-    "psutil>=2.1.0", "netifaces>=0.10.2", "netaddr",
-    "colorama", "logutils"]
-
-
-# Windows is a little special because we have to have pywin32
-# installed.  pyfarm.core uses it and certain components of
-# other libraries use it too, such as twisted, so we check for
-# it here.  Unfortunately, we can't use PyPi for this.
-if sys.platform.startswith("win"):
-    try:
-        import win32api
-    except ImportError:
-        raise ImportError(
-            "On Windows, you must manually install pywin32 before running "
-            "pyfarm.core's setup.py.  This is required because there's not "
-            "a package that we can pull down and reliably install from "
-            "Python package repository.  Please visit "
-            "http://sourceforge.net/projects/pywin32/files/pywin32/ to "
-            "download and install this package.")
-    else:
-        install_requires.append("wmi")
+install_requires = ["colorama", "logutils"]
 
 
 if isfile("README.rst"):
@@ -56,8 +35,7 @@ setup(
     name="pyfarm.core",
     version="0.7.18",
     packages=["pyfarm",
-              "pyfarm.core",
-              "pyfarm.core.sysinfo"],
+              "pyfarm.core"],
     namespace_packages=["pyfarm"],
     install_requires=install_requires,
     url="https://github.com/pyfarm/pyfarm-core",
