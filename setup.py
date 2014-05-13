@@ -33,7 +33,7 @@ else:
 
 setup(
     name="pyfarm.core",
-    version="0.7.19",
+    version="0.7.20",
     packages=["pyfarm",
               "pyfarm.core"],
     namespace_packages=["pyfarm"],
