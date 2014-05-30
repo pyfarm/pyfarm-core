@@ -35,11 +35,26 @@ in various forms.
 """
 
 import os
-from functools import partial
 from ast import literal_eval
+from functools import partial
+from itertools import product
+from pprint import pformat
+from os.path import isfile, join, isdir
+
+try:
+    from StringIO import StringIO
+except ImportError:  # pragma: no cover
+    from io import StringIO
+
+import yaml
+try:
+    from yaml.loader import CLoader as Loader
+except ImportError:  # pragma: no cover
+    from yaml.loader import Loader
 
 from pyfarm.core.logger import getLogger
-from pyfarm.core.enums import STRING_TYPES, NUMERIC_TYPES, NOTSET
+from pyfarm.core.enums import (
+    STRING_TYPES, NUMERIC_TYPES, NOTSET, LINUX, MAC, WINDOWS)
 
 logger = getLogger("core.config")
 
@@ -47,6 +62,16 @@ logger = getLogger("core.config")
 # pulled from the environment after calling .lower().
 BOOLEAN_TRUE = set(["1", "t", "y", "true", "yes"])
 BOOLEAN_FALSE = set(["0", "f", "n", "false", "no"])
+
+if LINUX:
+    DEFAULT_CONFIG_ROOT = join(os.sep, "etc")
+elif MAC:
+    DEFAULT_CONFIG_ROOT = join(os.sep, "Library")
+elif WINDOWS:
+    DEFAULT_CONFIG_ROOT = os.environ["APPDATA"]
+else:
+    logger.warning("Failed to determine default configuration root")
+    DEFAULT_CONFIG_ROOT = None
 
 
 def read_env(envvar, default=NOTSET, warn_if_unset=False, eval_literal=False,
@@ -217,3 +242,103 @@ def read_env_strict_number(*args, **kwargs):
 
 read_env_int = partial(read_env_strict_number, number_type=int)
 read_env_float = partial(read_env_strict_number, number_type=float)
+
+
+def load_yaml(data):
+    """Wrapper around :func:`yaml.load`"""
+    if isfile(data):
+        logger.debug("Loading yaml data from %s", data)
+        with open(data, "rb") as stream:
+            return yaml.load(stream, Loader=Loader)
+
+    logger.debug("Loading yaml data from string")
+    return yaml.load(data, Loader=Loader)
+
+
+def split_versions(version, sep="."):
+    """
+    Splits ``version`` into a tuple of individual versions which are
+    split from ``version``.
+
+    >>> split_versions("1.2.3")
+    ['1', '1.2', '1.2.3']
+    """
+    split = version.split(sep)
+    return [sep.join(split[:index]) for index, _ in enumerate(split, start=1)]
+
+
+def configuration_directories(
+        version,  child_dir, local_dir="etc", system_root=DEFAULT_CONFIG_ROOT,
+        environment_root=read_env("PYFARM_CONFIG_ROOT", None),
+        filter_missing=True, split_versions=split_versions):
+    """
+    Returns a list of platform dependent directories which may contain
+    configuration files.  This will produce a list of directories
+    a specific order.  Assuming these inputs and that all the directories
+    we construct should exist you'd see something like this as a result:
+
+    :param string version:
+        The version the version of the program running.
+
+    :param string child_dir:
+        A directory which is appended to each root we find.  You can
+        append an empty directory or a subdirectory so that configuration
+        files for different parts of PyFarm can be stored side by side.
+
+    :param string local_dir:
+        An optional directory where we should search for configuration
+        files which is local to the process's working directory.
+
+    :param string system_root:
+        An optional directory where the root system configuration
+        files should be found.  This is set to :const:`DEFAULT_CONFIG_ROOT`
+        by default which varies depending on the platform:
+
+            * **Linux**: /etc
+            * **Mac**: /Library
+            * **Windows**: %APPDATA% (environment variable)
+
+    :param string environment_root:
+        Looks at the :envvar:`PYFARM_CONFIG_ROOT` environment variable
+        for another root configuration directory.  If this environment
+        variable is not defined it will not be included in the resulting
+        directories.
+
+    :param bool filter_missing:
+        If True then exclude non-existent directories from the
+        results
+
+    :param split_versions:
+        A function used to split ``version`` into individual components
+    """
+    results = []
+    roots = []
+
+    # List of versions to search for
+    versions = split_versions(version) if version is not None else []
+    versions.insert(0, "")  # the 'version free' directory
+
+    # If provided, insert the default root
+    if system_root is not None:
+        roots.append(join(system_root, child_dir))
+
+    # If provided, append the root discovered in the environment
+    if environment_root is not None:
+        roots.append(join(environment_root, child_dir))
+
+    # If provided append a local directory
+    if local_dir is not None:
+        roots.append(join(local_dir, child_dir))
+
+    for path in [join(root, tail) for root, tail in product(roots, versions)]:
+        if filter_missing and isdir(path) or not filter_missing:
+            results.append(path)
+
+    if results:
+        logger.debug(
+            "Found %s configuration directories: %s",
+            len(results), pformat(results))
+    else:
+        logger.debug("No configuration directories were found.")
+
+    return results

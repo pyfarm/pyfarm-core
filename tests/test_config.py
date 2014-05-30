@@ -17,9 +17,13 @@
 from __future__ import with_statement
 
 import os
+import tempfile
 import uuid
+from os.path import join
+from random import randint
 
 from pyfarm.core.enums import PY26
+from pyfarm.core.testutil import TestCase as BaseTestCase
 
 if PY26:
     from unittest2 import TestCase
@@ -28,7 +32,7 @@ else:
 
 from pyfarm.core.config import (
     read_env, read_env_number, read_env_bool, read_env_strict_number,
-    BOOLEAN_FALSE, BOOLEAN_TRUE)
+    BOOLEAN_FALSE, BOOLEAN_TRUE, configuration_directories, split_versions)
 
 
 class TestConfig(TestCase):
@@ -119,3 +123,80 @@ class TestConfig(TestCase):
         os.environ[key] = "42"
         with self.assertRaises(TypeError):
             read_env_strict_number(key, number_type=float)
+
+
+class TestVersionSplit(TestCase):
+    def test_split(self):
+        self.assertEqual(split_versions("1.2.3"), ["1", "1.2", "1.2.3"])
+
+    def test_custom_split(self):
+        self.assertEqual(
+            split_versions("1-2-3", sep="-"), ["1", "1-2", "1-2-3"])
+
+
+class TestConfigDirectory(BaseTestCase):
+    def setUp(self):
+        super(TestConfigDirectory, self).setUp()
+        self.env_key = "a" + uuid.uuid4().hex
+        self.env_value = "a" + uuid.uuid4().hex
+        self.version = ".".join(
+            list(map(str, [randint(1, 10), randint(1, 10), randint(1, 10)])))
+        self.version_split = split_versions(self.version)
+        self.child_dir = join("a" + uuid.uuid4().hex, "a" + uuid.uuid4().hex)
+        self.local_dir = "a" + uuid.uuid4().hex
+        self.system_root = "/a" + uuid.uuid4().hex
+        self.environment_root = "a" + uuid.uuid4().hex
+        os.environ[self.env_key] = self.env_value
+
+    def test_basic_output(self):
+        self.assertEqual(
+            configuration_directories(
+                self.version, self.child_dir, local_dir=self.local_dir,
+                environment_root=self.environment_root,
+                system_root=self.system_root, filter_missing=False),
+            [join(self.system_root, self.child_dir + "/"),
+             join(self.system_root, self.child_dir, self.version_split[0]),
+             join(self.system_root, self.child_dir, self.version_split[1]),
+             join(self.system_root, self.child_dir, self.version_split[2]),
+             join(self.environment_root, self.child_dir + "/"),
+             join(self.environment_root, self.child_dir, self.version_split[0]),
+             join(self.environment_root, self.child_dir, self.version_split[1]),
+             join(self.environment_root, self.child_dir, self.version_split[2]),
+             join(self.local_dir, self.child_dir + "/"),
+             join(self.local_dir, self.child_dir, self.version_split[0]),
+             join(self.local_dir, self.child_dir, self.version_split[1]),
+             join(self.local_dir, self.child_dir, self.version_split[2])])
+
+    def test_filter_missing(self):
+        tempdir = tempfile.mkdtemp()
+        subdirs = [
+            join(tempdir, self.child_dir) + "/",
+            join(tempdir, self.child_dir, "1"),
+            join(tempdir, self.child_dir, "1.2"),
+            join(tempdir, self.child_dir, "1.2.3")]
+
+        for subdir in subdirs:
+            try:
+                os.makedirs(subdir)
+            except OSError:
+                pass
+
+            self.add_cleanup_path(subdir)
+
+        self.assertEqual(
+            subdirs,
+            configuration_directories(
+                "1.2.3", self.child_dir,
+                system_root=tempdir, environment_root=None))
+
+    # TODO
+    def test_windows_system_root(self):
+        pass
+
+    # TODO
+    def test_linux_system_root(self):
+        pass
+
+    # TODO:
+    def test_mac_system_root(self):
+        pass
