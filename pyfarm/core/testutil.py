@@ -39,6 +39,17 @@ def skip_on_ci(func):
 from pyfarm.core.enums import STRING_TYPES
 
 
+def rm(path):
+    try:
+        os.remove(path)
+    except Exception:
+        pass
+    try:
+        shutil.rmtree(path)
+    except Exception:
+        pass
+
+
 class TestCase(unittest.TestCase):
     TEMPDIR_PREFIX = ""
     ORIGINAL_ENVIRONMENT = {}
@@ -87,3 +98,6 @@ class TestCase(unittest.TestCase):
             map(self.remove, self.temp_directories.copy())
         except AttributeError:
             pass
+
+    def add_cleanup_path(self, path):
+        self.addCleanup(rm, path)
