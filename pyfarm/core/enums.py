@@ -132,6 +132,11 @@ Describes which address should be used to contact the agent
     some conditions.  Generally used by
     :func:`pyfarm.core.utility.convert.none`
 
+:const INTERACTIVE_INTERPRETER:
+    True when we're running inside an interactive interpreter such as
+    a Python shell like IPython.  This value will also be True if
+    there's an active debugger.
+
 :const OS:
     The current os type, the value will map to one of the values in
     :class:`.OperatingSystem`
@@ -434,6 +439,7 @@ def operating_system(plat=sys.platform):
     else:
         return "other"
 
+INTERACTIVE_INTERPRETER = hasattr(sys, "ps1") or sys.gettrace() is not None
 
 # operating system information
 OS = operating_system()
