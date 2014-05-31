@@ -342,3 +342,35 @@ def configuration_directories(
         logger.debug("No configuration directories were found.")
 
     return results
+
+
+def configuration_files(name, version, **kwargs):
+    """
+    Returns a list of configuration files.  See they keyword
+    argument documentation in :func:`configuration_directories`
+    for more information on possible inputs aside from the
+    documnetation below.
+
+    :param string name:
+        The name of the file to load without the extension.  If
+        provided ``foobar``  this would search for a file such
+        as ``/etc/pyfarm/foobar/1.2.3/foobar.yml``
+
+    :param string version:
+        The version string to pass into :func:`configuration_directories`
+    """
+    child_dir = kwargs.pop("child_dir", join("pyfarm", name))
+    filter_missing = kwargs.get("filter_missing", True)
+
+    # Generate the configuration directories and filepaths
+    config_dirs = configuration_directories(version, child_dir, **kwargs)
+    filepaths = [join(path, "%s.yml" % name) for path in config_dirs]
+
+    # Filter out, or don't filter out, the file paths
+    filter_function = isfile if filter_missing else lambda _: True
+    results = list(filter(filter_function, filepaths))
+
+    if not results:
+        logger.warning("No configuration files found.")
+
+    return results
