@@ -22,17 +22,18 @@ import uuid
 from os.path import join
 from random import randint
 
-from pyfarm.core.enums import PY26
+from pyfarm.core.enums import PY26, LINUX, MAC, WINDOWS
 from pyfarm.core.testutil import TestCase as BaseTestCase
 
 if PY26:
-    from unittest2 import TestCase
+    from unittest2 import TestCase, skipIf
 else:
-    from unittest import TestCase
+    from unittest import TestCase, skipIf
 
 from pyfarm.core.config import (
     read_env, read_env_number, read_env_bool, read_env_strict_number,
-    BOOLEAN_FALSE, BOOLEAN_TRUE, configuration_directories, split_versions)
+    BOOLEAN_FALSE, BOOLEAN_TRUE, configuration_directories, split_versions,
+    DEFAULT_CONFIG_ROOT)
 
 
 class TestConfig(TestCase):
@@ -189,14 +190,14 @@ class TestConfigDirectory(BaseTestCase):
                 "1.2.3", self.child_dir,
                 system_root=tempdir, environment_root=None))
 
-    # TODO
+    @skipIf(not WINDOWS, "not windows")
     def test_windows_system_root(self):
-        pass
+        self.assertEqual(DEFAULT_CONFIG_ROOT, os.environ["APPDATA"])
 
-    # TODO
+    @skipIf(not LINUX, "not linux")
     def test_linux_system_root(self):
-        pass
+        self.assertEqual(DEFAULT_CONFIG_ROOT, join(os.sep, "etc"))
 
-    # TODO:
+    @skipIf(not MAC, "not mac")
     def test_mac_system_root(self):
-        pass
+        self.assertEqual(DEFAULT_CONFIG_ROOT, join(os.sep, "Library"))
