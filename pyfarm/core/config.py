@@ -239,6 +239,9 @@ class Configuration(dict):
     Main object responsible for finding, loading, and
     merging configuration data.
 
+    :param string service_name:
+        The name of the service itself, typically 'master' or 'agent'.
+
     :param string version:
         The version the version of the program running.
 
