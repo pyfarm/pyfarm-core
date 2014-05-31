@@ -32,11 +32,10 @@ else:
 
 from pyfarm.core.config import (
     read_env, read_env_number, read_env_bool, read_env_strict_number,
-    BOOLEAN_FALSE, BOOLEAN_TRUE, configuration_directories, split_versions,
-    DEFAULT_CONFIG_ROOT)
+    BOOLEAN_FALSE, BOOLEAN_TRUE, Configuration)
 
 
-class TestConfig(TestCase):
+class TestConfigEnvironment(TestCase):
     def test_readenv_missing(self):
         key = uuid.uuid4().hex
         with self.assertRaises(EnvironmentError):
@@ -126,78 +125,34 @@ class TestConfig(TestCase):
             read_env_strict_number(key, number_type=float)
 
 
-class TestVersionSplit(TestCase):
-    def test_split(self):
-        self.assertEqual(split_versions("1.2.3"), ["1", "1.2", "1.2.3"])
+class TestConfiguration(BaseTestCase):
+    def test_parent_class(self):
+        self.assertIn(dict, Configuration.__bases__)
 
-    def test_custom_split(self):
+    def test_extension(self):
+        self.assertEqual(Configuration.FILE_EXTENSION, ".yml")
+
+    def test_local_directory_name(self):
+        self.assertEqual(Configuration.LOCAL_DIRECTORY_NAME, "etc")
+
+    def test_parent_application_name(self):
+        self.assertEqual(Configuration.PARENT_APPLICATION_NAME, "pyfarm")
+
+    def test_environment_variable(self):
         self.assertEqual(
-            split_versions("1-2-3", sep="-"), ["1", "1-2", "1-2-3"])
-
-
-class TestConfigDirectory(BaseTestCase):
-    def setUp(self):
-        super(TestConfigDirectory, self).setUp()
-        self.env_key = "a" + uuid.uuid4().hex
-        self.env_value = "a" + uuid.uuid4().hex
-        self.version = ".".join(
-            list(map(str, [randint(1, 10), randint(1, 10), randint(1, 10)])))
-        self.version_split = split_versions(self.version)
-        self.child_dir = join("a" + uuid.uuid4().hex, "a" + uuid.uuid4().hex)
-        self.local_dir = "a" + uuid.uuid4().hex
-        self.system_root = "/a" + uuid.uuid4().hex
-        self.environment_root = "a" + uuid.uuid4().hex
-        os.environ[self.env_key] = self.env_value
-
-    def test_basic_output(self):
-        self.assertEqual(
-            configuration_directories(
-                self.version, self.child_dir, local_dir=self.local_dir,
-                environment_root=self.environment_root,
-                system_root=self.system_root, filter_missing=False),
-            [join(self.system_root, self.child_dir + "/"),
-             join(self.system_root, self.child_dir, self.version_split[0]),
-             join(self.system_root, self.child_dir, self.version_split[1]),
-             join(self.system_root, self.child_dir, self.version_split[2]),
-             join(self.environment_root, self.child_dir + "/"),
-             join(self.environment_root, self.child_dir, self.version_split[0]),
-             join(self.environment_root, self.child_dir, self.version_split[1]),
-             join(self.environment_root, self.child_dir, self.version_split[2]),
-             join(self.local_dir, self.child_dir + "/"),
-             join(self.local_dir, self.child_dir, self.version_split[0]),
-             join(self.local_dir, self.child_dir, self.version_split[1]),
-             join(self.local_dir, self.child_dir, self.version_split[2])])
-
-    def test_filter_missing(self):
-        tempdir = tempfile.mkdtemp()
-        subdirs = [
-            join(tempdir, self.child_dir) + "/",
-            join(tempdir, self.child_dir, "1"),
-            join(tempdir, self.child_dir, "1.2"),
-            join(tempdir, self.child_dir, "1.2.3")]
-
-        for subdir in subdirs:
-            try:
-                os.makedirs(subdir)
-            except OSError:
-                pass
-
-            self.add_cleanup_path(subdir)
-
-        self.assertEqual(
-            subdirs,
-            configuration_directories(
-                "1.2.3", self.child_dir,
-                system_root=tempdir, environment_root=None))
-
-    @skipIf(not WINDOWS, "not windows")
-    def test_windows_system_root(self):
-        self.assertEqual(DEFAULT_CONFIG_ROOT, os.environ["APPDATA"])
+            Configuration.ENVIRONMENT_PATH_VARIABLE, "PYFARM_CONFIG_ROOT")
 
     @skipIf(not LINUX, "not linux")
-    def test_linux_system_root(self):
-        self.assertEqual(DEFAULT_CONFIG_ROOT, join(os.sep, "etc"))
+    def test_linux_config_root(self):
+        self.assertEqual(
+            Configuration.DEFAULT_CONFIG_ROOT, join(os.sep, "etc"))
 
     @skipIf(not MAC, "not mac")
-    def test_mac_system_root(self):
-        self.assertEqual(DEFAULT_CONFIG_ROOT, join(os.sep, "Library"))
+    def test_mac_config_root(self):
+        self.assertEqual(
+            Configuration.DEFAULT_CONFIG_ROOT, join(os.sep, "Library"))
+
+    @skipIf(not WINDOWS, "not windows")
+    def test_windows_config_root(self):
+        self.assertEqual(
+            Configuration.DEFAULT_CONFIG_ROOT, os.environ["APPDATA"])
