@@ -19,7 +19,7 @@ from __future__ import with_statement
 import os
 import tempfile
 import uuid
-from os.path import join
+from os.path import join, isdir
 from random import randint
 
 from pyfarm.core.enums import PY26, LINUX, MAC, WINDOWS
@@ -156,3 +156,26 @@ class TestConfiguration(BaseTestCase):
     def test_windows_config_root(self):
         self.assertEqual(
             Configuration.DEFAULT_CONFIG_ROOT, os.environ["APPDATA"])
+
+    def test_instance_attributes(self):
+        config = Configuration("agent", "1.2.3")
+        self.assertEqual(config.service_name, "agent")
+        self.assertEqual(config.version, "1.2.3")
+        self.assertEqual(config.system_root, Configuration.DEFAULT_CONFIG_ROOT)
+        self.assertEqual(
+            config.child_dir,
+            join(config.PARENT_APPLICATION_NAME, config.service_name))
+        self.assertIsNone(config.environment_root)
+
+        if isdir(config.LOCAL_DIRECTORY_NAME):
+            self.assertEqual(config.local_dir, config.LOCAL_DIRECTORY_NAME)
+        else:
+            self.assertIsNone(config.local_dir)
+
+    def test_split_version(self):
+        config = Configuration("agent", "1.2.3")
+        self.assertEqual(config.split_version(), ["1", "1.2", "1.2.3"])
+
+    def test_split_empty_version(self):
+        config = Configuration("agent", None)
+        self.assertEqual(config.split_version(), [])
