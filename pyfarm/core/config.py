@@ -63,16 +63,6 @@ logger = getLogger("core.config")
 BOOLEAN_TRUE = set(["1", "t", "y", "true", "yes"])
 BOOLEAN_FALSE = set(["0", "f", "n", "false", "no"])
 
-if LINUX:
-    DEFAULT_CONFIG_ROOT = join(os.sep, "etc")
-elif MAC:
-    DEFAULT_CONFIG_ROOT = join(os.sep, "Library")
-elif WINDOWS:
-    DEFAULT_CONFIG_ROOT = os.environ["APPDATA"]
-else:
-    logger.warning("Failed to determine default configuration root")
-    DEFAULT_CONFIG_ROOT = None
-
 
 def read_env(envvar, default=NOTSET, warn_if_unset=False, eval_literal=False,
              raise_eval_exception=True, log_result=True, desc=None):
@@ -244,133 +234,125 @@ read_env_int = partial(read_env_strict_number, number_type=int)
 read_env_float = partial(read_env_strict_number, number_type=float)
 
 
-def load_yaml(data):
-    """Wrapper around :func:`yaml.load`"""
-    if isfile(data):
-        logger.debug("Loading yaml data from %s", data)
-        with open(data, "rb") as stream:
-            return yaml.load(stream, Loader=Loader)
-
-    logger.debug("Loading yaml data from string")
-    return yaml.load(data, Loader=Loader)
-
-
-def split_versions(version, sep="."):
+class Configuration(dict):
     """
-    Splits ``version`` into a tuple of individual versions which are
-    split from ``version``.
-
-    >>> split_versions("1.2.3")
-    ['1', '1.2', '1.2.3']
-    """
-    split = version.split(sep)
-    return [sep.join(split[:index]) for index, _ in enumerate(split, start=1)]
-
-
-def configuration_directories(
-        version,  child_dir, local_dir="etc", system_root=DEFAULT_CONFIG_ROOT,
-        environment_root=read_env("PYFARM_CONFIG_ROOT", None),
-        filter_missing=True, split_versions=split_versions):
-    """
-    Returns a list of platform dependent directories which may contain
-    configuration files.  This will produce a list of directories
-    a specific order.  Assuming these inputs and that all the directories
-    we construct should exist you'd see something like this as a result:
+    Main object responsible for finding, loading, and
+    merging configuration data.
 
     :param string version:
         The version the version of the program running.
 
-    :param string child_dir:
-        A directory which is appended to each root we find.  You can
-        append an empty directory or a subdirectory so that configuration
-        files for different parts of PyFarm can be stored side by side.
-
-    :param string local_dir:
-        An optional directory where we should search for configuration
-        files which is local to the process's working directory.
-
-    :param string system_root:
-        An optional directory where the root system configuration
-        files should be found.  This is set to :const:`DEFAULT_CONFIG_ROOT`
-        by default which varies depending on the platform:
-
-            * **Linux**: /etc
-            * **Mac**: /Library
-            * **Windows**: %APPDATA% (environment variable)
-
-    :param string environment_root:
-        Looks at the :envvar:`PYFARM_CONFIG_ROOT` environment variable
-        for another root configuration directory.  If this environment
-        variable is not defined it will not be included in the resulting
-        directories.
-
-    :param bool filter_missing:
-        If True then exclude non-existent directories from the
-        results
-
-    :param split_versions:
-        A function used to split ``version`` into individual components
     """
-    results = []
-    roots = []
-
-    # List of versions to search for
-    versions = split_versions(version) if version is not None else []
-    versions.insert(0, "")  # the 'version free' directory
-
-    # If provided, insert the default root
-    if system_root is not None:
-        roots.append(join(system_root, child_dir))
-
-    # If provided, append the root discovered in the environment
-    if environment_root is not None:
-        roots.append(join(environment_root, child_dir))
-
-    # If provided append a local directory
-    if local_dir is not None:
-        roots.append(join(local_dir, child_dir))
-
-    for path in [join(root, tail) for root, tail in product(roots, versions)]:
-        if filter_missing and isdir(path) or not filter_missing:
-            results.append(path)
-
-    if results:
-        logger.debug(
-            "Found %s configuration directories: %s",
-            len(results), pformat(results))
+    if LINUX:
+        DEFAULT_CONFIG_ROOT = join(os.sep, "etc")
+    elif MAC:
+        DEFAULT_CONFIG_ROOT = join(os.sep, "Library")
+    elif WINDOWS:
+        DEFAULT_CONFIG_ROOT = os.environ["APPDATA"]
     else:
-        logger.debug("No configuration directories were found.")
+        logger.warning("Failed to determine default configuration root")
+        DEFAULT_CONFIG_ROOT = None
 
-    return results
+    FILE_EXTENSION = ".yml"
+    LOCAL_DIRECTORY_NAME = "etc"
+    PARENT_APPLICATION_NAME = "pyfarm"
+    ENVIRONMENT_PATH_VARIABLE = "PYFARM_CONFIG_ROOT"
 
+    def __init__(self, service_name, version):
+        super(Configuration, self).__init__()
+        self.service_name = service_name
+        self.version = version
+        self.system_root = self.DEFAULT_CONFIG_ROOT
+        self.child_dir = join(self.PARENT_APPLICATION_NAME, self.service_name)
+        self.environment_root = read_env(self.ENVIRONMENT_PATH_VARIABLE, None)
 
-def configuration_files(name, version, **kwargs):
-    """
-    Returns a list of configuration files.  See they keyword
-    argument documentation in :func:`configuration_directories`
-    for more information on possible inputs aside from the
-    documnetation below.
+        if isdir(self.LOCAL_DIRECTORY_NAME):
+            self.local_dir = self.LOCAL_DIRECTORY_NAME
+        else:
+            self.local_dir = None
 
-    :param string name:
-        The name of the file to load without the extension.  If
-        provided ``foobar``  this would search for a file such
-        as ``/etc/pyfarm/foobar/1.2.3/foobar.yml``
+    def split_version(self, sep="."):
+        """
+        Splits ``self.version`` into a tuple of individual versions.  For
+        example ``1.2.3`` would be split into ``['1', '1.2', '1.2.3']``
+        """
+        if self.version is None:
+            return []
 
-    :param string version:
-        The version string to pass into :func:`configuration_directories`
-    """
-    child_dir = kwargs.pop("child_dir", join("pyfarm", name))
-    filter_missing = kwargs.get("filter_missing", True)
+        split = self.version.split(sep)
+        return [
+            sep.join(split[:index]) for index, _ in enumerate(split, start=1)]
 
-    # Generate the configuration directories and filepaths
-    config_dirs = configuration_directories(version, child_dir, **kwargs)
-    filepaths = [join(path, "%s.yml" % name) for path in config_dirs]
+    def directories(self, filter_missing=True):
+        """
+        Returns a list of platform dependent directories which may contain
+        configuration files.
 
-    # Filter out, or don't filter out, the file paths
-    filter_function = isfile if filter_missing else lambda _: True
-    results = list(filter(filter_function, filepaths))
+        :param bool filter_missing:
+            If True then only return directories which exist
+        """
+        results = []
+        roots = []
+        versions = self.split_version(self.version)
+        versions.insert(0, "")  # the 'version free' directory
 
-    if not results:
-        logger.warning("No configuration files found.")
+        # If provided, insert the default root
+        if self.system_root is not None:
+            roots.append(join(self.system_root, self.child_dir))
 
-    return results
+        # If provided, append the root discovered in the environment
+        if self.environment_root is not None:
+            roots.append(join(self.environment_root, self.child_dir))
+
+        # If provided append a local directory
+        if self.local_dir is not None:
+            roots.append(join(self.local_dir, self.child_dir))
+
+        paths = [join(root, tail) for root, tail in product(roots, versions)]
+        for path in paths:
+            if filter_missing and isdir(path) or not filter_missing:
+                results.append(path)
+
+        if results:
+            logger.debug(
+                "Found %s configuration directories: %s",
+                len(results), pformat(results))
+
+        return results
+
+    def files(self, filter_missing=True):
+        """
+        Returns a list of configuration files.
+
+        :param bool filter_missing:
+            If True only return files which exist.
+        """
+        directories = self.directories(filter_missing=filter_missing)
+        if not directories:
+            logger.error("No configuration directories found.")
+            return []
+
+        filename = self.service_name + self.FILE_EXTENSION
+        filepaths = [join(directory, filename) for directory in directories]
+        filterer = lambda _: True if not filter_missing else isfile
+        filtered_paths = list(filter(filterer, filepaths))
+
+        if not filtered_paths:
+            logger.error("No configuration files found.")
+
+        return filtered_paths
+
+    def load(self, environment=os.environ):
+        """Loads data from the configuration files"""
+        for filepath in self.files():
+            logger.debug("Reading %s", filepath)
+
+            with open(filepath, "rb") as stream:
+                data = yaml.load(stream, Loader=Loader)
+
+            if environment is not None and "env" in data:
+                config_environment = data.pop("env")
+                assert isinstance(config_environment, dict)
+                environment.update(config_environment)
+
+            self.update(data)
