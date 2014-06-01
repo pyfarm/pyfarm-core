@@ -19,8 +19,7 @@ from __future__ import with_statement
 import os
 import tempfile
 import uuid
-from os.path import join, isdir
-from random import randint
+from os.path import join, dirname
 
 from pyfarm.core.enums import PY26, LINUX, MAC, WINDOWS
 from pyfarm.core.testutil import TestCase as BaseTestCase
@@ -225,7 +224,7 @@ class TestConfiguration(BaseTestCase):
         config.environment_root = uuid.uuid4().hex
         self.assertEqual(config.directories(filter_missing=True), [])
 
-        def test_files_unfiltered(self):
+    def test_files_unfiltered(self):
         config = Configuration("agent", "1.2.3")
         split = config.split_version()
         filename = config.service_name + config.file_extension
@@ -238,5 +237,30 @@ class TestConfiguration(BaseTestCase):
              join(config.local_dir, config.child_dir + os.sep, filename),
              join(config.local_dir, config.child_dir, split[0], filename),
              join(config.local_dir, config.child_dir, split[1], filename),
-             join(config.local_dir, config.child_dir, split[2], filename)]
-        )
+             join(config.local_dir, config.child_dir, split[2], filename)])
+
+    def test_files_filtered_with_files(self):
+        local_root = tempfile.mkdtemp()
+        config = Configuration("agent", "1.2.3")
+        config.system_root = local_root
+        self.add_cleanup_path(local_root)
+        split = config.split_version()
+        filename = config.service_name + config.file_extension
+        paths = [
+            join(config.system_root, config.child_dir + os.sep, filename),
+            join(config.system_root, config.child_dir, split[2], filename)]
+
+        for path in paths:
+            try:
+                os.makedirs(dirname(path))
+            except OSError:
+                pass
+
+            with open(path, "wb") as stream:
+                self.add_cleanup_path(stream.name)
+
+        self.assertEqual(config.files(filter_missing=True), paths)
+
+    def test_files_filtered_without_files(self):
+        config = Configuration("agent", "1.2.3")
+        self.assertEqual(config.files(filter_missing=True), [])
