@@ -179,3 +179,42 @@ class TestConfiguration(BaseTestCase):
     def test_split_empty_version(self):
         config = Configuration("agent", None)
         self.assertEqual(config.split_version(), [])
+
+    def test_directories_unfiltered(self):
+        config = Configuration("agent", "1.2.3")
+        split = config.split_version()
+        self.assertEqual(
+            config.directories(filter_missing=False),
+            [join(config.DEFAULT_CONFIG_ROOT, config.child_dir + os.sep),
+             join(config.DEFAULT_CONFIG_ROOT, config.child_dir, split[0]),
+             join(config.DEFAULT_CONFIG_ROOT, config.child_dir, split[1]),
+             join(config.DEFAULT_CONFIG_ROOT, config.child_dir, split[2])])
+
+    def test_directories_filtered_with_dirs(self):
+        local_root = tempfile.mkdtemp()
+        config = Configuration("agent", "1.2.3")
+        config.system_root = local_root
+        split = config.split_version()
+        child_dirs = [
+            join(local_root, config.child_dir + "/"),
+            join(local_root, config.child_dir, split[0]),
+            join(local_root, config.child_dir, split[1]),
+            join(local_root, config.child_dir, split[2])
+        ]
+
+        for path in child_dirs:
+            try:
+                os.makedirs(path)
+            except (OSError, IOError):
+                pass
+
+            self.add_cleanup_path(path)
+
+        self.assertEqual(config.directories(filter_missing=True), child_dirs)
+
+    def test_directories_filtered_without_dirs(self):
+        config = Configuration("agent", "1.2.3")
+        config.local_dir = uuid.uuid4().hex
+        config.system_root = uuid.uuid4().hex
+        config.environment_root = uuid.uuid4().hex
+        self.assertEqual(config.directories(filter_missing=True), [])
