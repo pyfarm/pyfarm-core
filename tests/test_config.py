@@ -19,6 +19,7 @@ from __future__ import with_statement
 import os
 import tempfile
 import uuid
+from textwrap import dedent
 from os.path import join, dirname
 
 from pyfarm.core.enums import PY26, LINUX, MAC, WINDOWS
@@ -256,7 +257,7 @@ class TestConfiguration(BaseTestCase):
             except OSError:
                 pass
 
-            with open(path, "wb") as stream:
+            with open(path, "w") as stream:
                 self.add_cleanup_path(stream.name)
 
         self.assertEqual(config.files(filter_missing=True), paths)
@@ -264,3 +265,58 @@ class TestConfiguration(BaseTestCase):
     def test_files_filtered_without_files(self):
         config = Configuration("agent", "1.2.3")
         self.assertEqual(config.files(filter_missing=True), [])
+
+    def test_load_basic(self):
+        local_root = tempfile.mkdtemp()
+        config = Configuration("agent", "1.2.3")
+        config.system_root = local_root
+        self.add_cleanup_path(local_root)
+        split = config.split_version()
+        filename = config.service_name + config.file_extension
+        paths = [
+            join(config.system_root, config.child_dir + os.sep, filename),
+            join(config.system_root, config.child_dir, split[2], filename)]
+
+        for i, path in enumerate(paths):
+            try:
+                os.makedirs(dirname(path))
+            except OSError:
+                pass
+
+            with open(path, "w") as stream:
+                stream.write("value: %d" % i)
+                self.add_cleanup_path(stream.name)
+
+        config.load()
+        self.assertEqual(config["value"], i)
+
+    def test_load_environment(self):
+        local_root = tempfile.mkdtemp()
+        config = Configuration("agent", "1.2.3")
+        config.system_root = local_root
+        self.add_cleanup_path(local_root)
+        split = config.split_version()
+        filename = config.service_name + config.file_extension
+        paths = [
+            join(config.system_root, config.child_dir + os.sep, filename),
+            join(config.system_root, config.child_dir, split[2], filename)]
+
+        for i, path in enumerate(paths):
+            try:
+                os.makedirs(dirname(path))
+            except OSError:
+                pass
+
+            data = dedent("""
+            env:
+                key%s: %s
+                key: %s
+            """ % (i, i, i))
+
+            with open(path, "w") as stream:
+                stream.write(data)
+                self.add_cleanup_path(stream.name)
+
+        environment = {}
+        config.load(environment=environment)
+        self.assertEqual(environment, {"key0": 0, "key1": 1, "key": 1})
