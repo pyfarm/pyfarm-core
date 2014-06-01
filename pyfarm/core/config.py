@@ -256,7 +256,7 @@ class Configuration(dict):
         logger.warning("Failed to determine default configuration root")
         DEFAULT_CONFIG_ROOT = None
 
-    FILE_EXTENSION = ".yml"
+    DEFAULT_FILE_EXTENSION = ".yml"
     DEFAULT_LOCAL_DIRECTORY_NAME = "etc"
     DEFAULT_PARENT_APPLICATION_NAME = "pyfarm"
     DEFAULT_ENVIRONMENT_PATH_VARIABLE = "PYFARM_CONFIG_ROOT"
@@ -265,7 +265,7 @@ class Configuration(dict):
         super(Configuration, self).__init__()
         self.service_name = service_name
         self.version = version
-        self.file_extension = self.FILE_EXTENSION
+        self.file_extension = self.DEFAULT_FILE_EXTENSION
         self.system_root = self.DEFAULT_CONFIG_ROOT
         self.child_dir = join(
             self.DEFAULT_PARENT_APPLICATION_NAME, self.service_name)
