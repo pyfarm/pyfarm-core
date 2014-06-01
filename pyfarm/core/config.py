@@ -246,13 +246,13 @@ class Configuration(dict):
         The version the version of the program running.
 
     """
-    if LINUX:
+    if LINUX:  # pragma: no cover
         DEFAULT_CONFIG_ROOT = join(os.sep, "etc")
-    elif MAC:
+    elif MAC:  # pragma: no cover
         DEFAULT_CONFIG_ROOT = join(os.sep, "Library")
-    elif WINDOWS:
+    elif WINDOWS:  # pragma: no cover
         DEFAULT_CONFIG_ROOT = os.environ["APPDATA"]
-    else:
+    else:  # pragma: no cover
         logger.warning("Failed to determine default configuration root")
         DEFAULT_CONFIG_ROOT = None
 
@@ -338,7 +338,7 @@ class Configuration(dict):
         filterer = lambda _: True if not filter_missing else isfile
         filtered_paths = list(filter(filterer, filepaths))
 
-        if not filtered_paths:
+        if not filtered_paths:  # pragma: no cover
             logger.error("No configuration files found.")
 
         return filtered_paths
@@ -352,7 +352,7 @@ class Configuration(dict):
                 try:
                     data = yaml.load(stream, Loader=Loader)
 
-                except yaml.YAMLError as e:
+                except yaml.YAMLError as e:  # pragma: no cover
                     logger.error("Failed to load %r: %s", filepath, e)
                     continue
 
