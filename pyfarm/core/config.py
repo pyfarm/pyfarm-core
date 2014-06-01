@@ -268,11 +268,7 @@ class Configuration(dict):
         self.system_root = self.DEFAULT_CONFIG_ROOT
         self.child_dir = join(self.PARENT_APPLICATION_NAME, self.service_name)
         self.environment_root = read_env(self.ENVIRONMENT_PATH_VARIABLE, None)
-
-        if isdir(self.LOCAL_DIRECTORY_NAME):
-            self.local_dir = self.LOCAL_DIRECTORY_NAME
-        else:
-            self.local_dir = None
+        self.local_dir = self.LOCAL_DIRECTORY_NAME
 
     def split_version(self, sep="."):
         """
@@ -311,10 +307,9 @@ class Configuration(dict):
         if self.local_dir is not None:
             roots.append(join(self.local_dir, self.child_dir))
 
+        filterer = isdir if filter_missing else lambda _: True
         paths = [join(root, tail) for root, tail in product(roots, versions)]
-        for path in paths:
-            if not filter_missing or filter_missing and isdir(path):
-                results.append(path)
+        results = list(filter(filterer, paths))
 
         if results:
             logger.debug(
