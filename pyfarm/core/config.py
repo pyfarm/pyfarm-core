@@ -296,7 +296,7 @@ class Configuration(dict):
         """
         results = []
         roots = []
-        versions = self.split_version(self.version)
+        versions = self.split_version()
         versions.insert(0, "")  # the 'version free' directory
 
         # If provided, insert the default root
