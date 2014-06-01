@@ -166,11 +166,7 @@ class TestConfiguration(BaseTestCase):
             config.child_dir,
             join(config.PARENT_APPLICATION_NAME, config.service_name))
         self.assertIsNone(config.environment_root)
-
-        if isdir(config.LOCAL_DIRECTORY_NAME):
-            self.assertEqual(config.local_dir, config.LOCAL_DIRECTORY_NAME)
-        else:
-            self.assertIsNone(config.local_dir)
+        self.assertEqual(config.local_dir, config.LOCAL_DIRECTORY_NAME)
 
     def test_split_version(self):
         config = Configuration("agent", "1.2.3")
@@ -185,10 +181,14 @@ class TestConfiguration(BaseTestCase):
         split = config.split_version()
         self.assertEqual(
             config.directories(filter_missing=False),
-            [join(config.DEFAULT_CONFIG_ROOT, config.child_dir + os.sep),
-             join(config.DEFAULT_CONFIG_ROOT, config.child_dir, split[0]),
-             join(config.DEFAULT_CONFIG_ROOT, config.child_dir, split[1]),
-             join(config.DEFAULT_CONFIG_ROOT, config.child_dir, split[2])])
+            [join(config.system_root, config.child_dir + os.sep),
+             join(config.system_root, config.child_dir, split[0]),
+             join(config.system_root, config.child_dir, split[1]),
+             join(config.system_root, config.child_dir, split[2]),
+             join(config.local_dir, config.child_dir + os.sep),
+             join(config.local_dir, config.child_dir, split[0]),
+             join(config.local_dir, config.child_dir, split[1]),
+             join(config.local_dir, config.child_dir, split[2])])
 
     def test_directories_filtered_with_dirs(self):
         local_root = tempfile.mkdtemp()
@@ -199,8 +199,7 @@ class TestConfiguration(BaseTestCase):
             join(local_root, config.child_dir + "/"),
             join(local_root, config.child_dir, split[0]),
             join(local_root, config.child_dir, split[1]),
-            join(local_root, config.child_dir, split[2])
-        ]
+            join(local_root, config.child_dir, split[2])]
 
         for path in child_dirs:
             try:
@@ -218,3 +217,7 @@ class TestConfiguration(BaseTestCase):
         config.system_root = uuid.uuid4().hex
         config.environment_root = uuid.uuid4().hex
         self.assertEqual(config.directories(filter_missing=True), [])
+
+    def test_files_unfiltered(self):
+        config = Configuration("agent", "1.2.3")
+        print(config.files(filter_missing=False))
