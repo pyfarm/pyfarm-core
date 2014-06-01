@@ -343,7 +343,7 @@ class Configuration(dict):
 
         return filtered_paths
 
-    def load(self, environment=os.environ):
+    def load(self, environment=None):
         """Loads data from the configuration files"""
         for filepath in self.files():
             logger.debug("Reading %s", filepath)
@@ -360,5 +360,10 @@ class Configuration(dict):
                 config_environment = data.pop("env")
                 assert isinstance(config_environment, dict)
                 environment.update(config_environment)
+
+            elif environment is None:
+                logger.warning(
+                    "No environment was provided to be populated by the "
+                    "configuration file(s)")
 
             self.update(data)
