@@ -349,7 +349,12 @@ class Configuration(dict):
             logger.debug("Reading %s", filepath)
 
             with open(filepath, "rb") as stream:
-                data = yaml.load(stream, Loader=Loader)
+                try:
+                    data = yaml.load(stream, Loader=Loader)
+
+                except yaml.YAMLError as e:
+                    logger.error("Failed to load %r: %s", filepath, e)
+                    continue
 
             if environment is not None and "env" in data:
                 config_environment = data.pop("env")
