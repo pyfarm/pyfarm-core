@@ -233,14 +233,60 @@ read_env_float = partial(read_env_strict_number, number_type=float)
 class Configuration(dict):
     """
     Main object responsible for finding, loading, and
-    merging configuration data.
+    merging configuration data.  By default this class does nothing
+    until :meth:`load` is called.  Once this method is called
+    :class:`Configuration` class will populate itself with data loaded
+    from the configuration files.  The configuration files themselves can
+    be loaded from multiple location depending on the system's setup.  For
+    example on Linux you might end up attempting to load:
+
+        * ``/etc/pyfarm/agent/agent.yml``
+        * ``/etc/pyfarm/agent/1/agent.yml``
+        * ``/etc/pyfarm/agent/1.2/agent.yml``
+        * ``/etc/pyfarm/agent/1.2.3/agent.yml``
+        * ``etc/pyfarm/agent/agent.yml``
+        * ``etc/pyfarm/agent/1/agent.yml``
+        * ``etc/pyfarm/agent/1.2/agent.yml``
+        * ``etc/pyfarm/agent/1.2.3/agent.yml``
+
+    :class:`Configuration` will only attempt to load files that exist ont
+    itself.  However if multiple ``agent.yml`` files existed the data from
+    each file would be used to update the instance allowing for overrides
+    and configuration lock down for specific versions.
+
+    :var string DEFAULT_CONFIG_ROOT:
+        The system level directory that we should look for configuration
+        files in.  This path is platform dependent:
+
+            * **Linux** - /etc/
+            * **Mac** - /Library/
+            * **Windows** - %APPDATA* (environment variable, varies by windows
+              version)
+
+        The value built here will be coped onto the instance as ``system_root``
+
+    :var string DEFAULT_FILE_EXTENSION:
+        The default file extension of the confiscation files.  This will
+        default to ``.yml`` and will be copied to ``file_extension`` when
+        the class is instanced.
+
+    :var string DEFAULT_LOCAL_DIRECTORY_NAME:
+        A directory local to the current process which we should search
+        for configuration files in.  This will default to ``etc`` and
+        will be copied to ``local_dir`` when the class is instanced.
+
+    :var string DEFAULT_PARENT_APPLICATION_NAME:
+        The base name of the parent application.  This used used to build
+        child directories and will default to ``pyfarm``.
+
+    :var string DEFAULT_ENVIRONMENT_PATH_VARIABLE:
+        A environment variable to search for a configuration path in.
 
     :param string service_name:
         The name of the service itself, typically 'master' or 'agent'.
 
     :param string version:
         The version the version of the program running.
-
     """
     if LINUX:  # pragma: no cover
         DEFAULT_CONFIG_ROOT = join(os.sep, "etc")
@@ -289,7 +335,6 @@ class Configuration(dict):
         :param bool filter_missing:
             If True then only return directories which exist
         """
-        results = []
         roots = []
         versions = self.split_version()
         versions.insert(0, "")  # the 'version free' directory
