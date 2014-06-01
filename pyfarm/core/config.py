@@ -385,7 +385,17 @@ class Configuration(dict):
         return filtered_paths
 
     def load(self, environment=None):
-        """Loads data from the configuration files"""
+        """
+        Loads data from the configuration files.  Any data present
+        in the ``env`` key in the configuration files will update
+        :arg:`environment`.
+
+        :param dict environment:
+            A dictionary to load data in the ``env`` key from
+            the configuration files into.  This would typically be
+            set to :var:`os.environ` so the environment itself could
+            be updated.
+        """
         for filepath in self.files():
             logger.debug("Reading %s", filepath)
 
@@ -407,4 +417,5 @@ class Configuration(dict):
                     "No environment was provided to be populated by the "
                     "configuration file(s)")
 
+            # Update this instance with the loaded data
             self.update(data)
