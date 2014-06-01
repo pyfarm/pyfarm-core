@@ -313,7 +313,7 @@ class Configuration(dict):
 
         paths = [join(root, tail) for root, tail in product(roots, versions)]
         for path in paths:
-            if filter_missing and isdir(path) or not filter_missing:
+            if not filter_missing or filter_missing and isdir(path):
                 results.append(path)
 
         if results:
