@@ -130,17 +130,17 @@ class TestConfiguration(BaseTestCase):
         self.assertIn(dict, Configuration.__bases__)
 
     def test_extension(self):
-        self.assertEqual(Configuration.FILE_EXTENSION, ".yml")
+        self.assertEqual(Configuration.DEFAULT_FILE_EXTENSION, ".yml")
 
     def test_local_directory_name(self):
-        self.assertEqual(Configuration.LOCAL_DIRECTORY_NAME, "etc")
+        self.assertEqual(Configuration.DEFAULT_LOCAL_DIRECTORY_NAME, "etc")
 
     def test_parent_application_name(self):
-        self.assertEqual(Configuration.PARENT_APPLICATION_NAME, "pyfarm")
+        self.assertEqual(Configuration.DEFAULT_PARENT_APPLICATION_NAME, "pyfarm")
 
     def test_environment_variable(self):
         self.assertEqual(
-            Configuration.ENVIRONMENT_PATH_VARIABLE, "PYFARM_CONFIG_ROOT")
+            Configuration.DEFAULT_ENVIRONMENT_PATH_VARIABLE, "PYFARM_CONFIG_ROOT")
 
     @skipIf(not LINUX, "not linux")
     def test_linux_config_root(self):
@@ -159,14 +159,21 @@ class TestConfiguration(BaseTestCase):
 
     def test_instance_attributes(self):
         config = Configuration("agent", "1.2.3")
+        self.assertIsNotNone(config.DEFAULT_CONFIG_ROOT)
         self.assertEqual(config.service_name, "agent")
         self.assertEqual(config.version, "1.2.3")
         self.assertEqual(config.system_root, Configuration.DEFAULT_CONFIG_ROOT)
         self.assertEqual(
             config.child_dir,
-            join(config.PARENT_APPLICATION_NAME, config.service_name))
-        self.assertIsNone(config.environment_root)
-        self.assertEqual(config.local_dir, config.LOCAL_DIRECTORY_NAME)
+            join(config.DEFAULT_PARENT_APPLICATION_NAME, config.service_name))
+        self.assertEqual(config.DEFAULT_FILE_EXTENSION, config.file_extension)
+        if config.DEFAULT_ENVIRONMENT_PATH_VARIABLE not in os.environ:
+            self.assertIsNone(config.environment_root)
+        else:
+            self.assertEqual(
+                config.environment_root,
+                os.environ[config.DEFAULT_ENVIRONMENT_PATH_VARIABLE])
+        self.assertEqual(config.local_dir, config.DEFAULT_LOCAL_DIRECTORY_NAME)
 
     def test_split_version(self):
         config = Configuration("agent", "1.2.3")
@@ -218,6 +225,18 @@ class TestConfiguration(BaseTestCase):
         config.environment_root = uuid.uuid4().hex
         self.assertEqual(config.directories(filter_missing=True), [])
 
-    def test_files_unfiltered(self):
+        def test_files_unfiltered(self):
         config = Configuration("agent", "1.2.3")
-        print(config.files(filter_missing=False))
+        split = config.split_version()
+        filename = config.service_name + config.file_extension
+        self.assertEqual(
+            config.files(filter_missing=False),
+            [join(config.system_root, config.child_dir + os.sep, filename),
+             join(config.system_root, config.child_dir, split[0], filename),
+             join(config.system_root, config.child_dir, split[1], filename),
+             join(config.system_root, config.child_dir, split[2], filename),
+             join(config.local_dir, config.child_dir + os.sep, filename),
+             join(config.local_dir, config.child_dir, split[0], filename),
+             join(config.local_dir, config.child_dir, split[1], filename),
+             join(config.local_dir, config.child_dir, split[2], filename)]
+        )
