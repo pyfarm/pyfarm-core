@@ -28,10 +28,6 @@ in various forms.
 :const BOOLEAN_FALSE:
     set of values which will return a False boolean value from
     :func:`.read_env_bool`
-
-:const NOTSET:
-    instanced :class:`object` which is returned when no data was found and
-    no default was provided
 """
 
 import os
