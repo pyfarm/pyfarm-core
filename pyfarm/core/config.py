@@ -257,18 +257,21 @@ class Configuration(dict):
         DEFAULT_CONFIG_ROOT = None
 
     FILE_EXTENSION = ".yml"
-    LOCAL_DIRECTORY_NAME = "etc"
-    PARENT_APPLICATION_NAME = "pyfarm"
-    ENVIRONMENT_PATH_VARIABLE = "PYFARM_CONFIG_ROOT"
+    DEFAULT_LOCAL_DIRECTORY_NAME = "etc"
+    DEFAULT_PARENT_APPLICATION_NAME = "pyfarm"
+    DEFAULT_ENVIRONMENT_PATH_VARIABLE = "PYFARM_CONFIG_ROOT"
 
     def __init__(self, service_name, version):
         super(Configuration, self).__init__()
         self.service_name = service_name
         self.version = version
+        self.file_extension = self.FILE_EXTENSION
         self.system_root = self.DEFAULT_CONFIG_ROOT
-        self.child_dir = join(self.PARENT_APPLICATION_NAME, self.service_name)
-        self.environment_root = read_env(self.ENVIRONMENT_PATH_VARIABLE, None)
-        self.local_dir = self.LOCAL_DIRECTORY_NAME
+        self.child_dir = join(
+            self.DEFAULT_PARENT_APPLICATION_NAME, self.service_name)
+        self.environment_root = read_env(
+            self.DEFAULT_ENVIRONMENT_PATH_VARIABLE, None)
+        self.local_dir = self.DEFAULT_LOCAL_DIRECTORY_NAME
 
     def split_version(self, sep="."):
         """
@@ -330,7 +333,7 @@ class Configuration(dict):
             logger.error("No configuration directories found.")
             return []
 
-        filename = self.service_name + self.FILE_EXTENSION
+        filename = self.service_name + self.file_extension
         filepaths = [join(directory, filename) for directory in directories]
         filterer = lambda _: True if not filter_missing else isfile
         filtered_paths = list(filter(filterer, filepaths))
