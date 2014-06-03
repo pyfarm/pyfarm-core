@@ -281,7 +281,7 @@ class Configuration(dict):
             * **Windows** - %APPDATA% (environment variable, varies by Windows
               version)
 
-        The value built here will be coped onto the instance as ``system_root``
+        The value built here will be copied onto the instance as ``system_root``
 
     :var string DEFAULT_FILE_EXTENSION:
         The default file extension of the confiscation files.  This will
