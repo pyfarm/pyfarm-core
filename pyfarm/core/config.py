@@ -252,7 +252,8 @@ class Configuration(dict):
     :class:`Configuration` will only attempt to load data from files which
     exist on the file system when :meth:`load` is called.  If multiple files
     exist the data will be loaded from each file with the successive data
-    overwriting the last value.  So if you have two files containing data:
+    overwriting the value from the previously loaded configuration file. So
+    if you have two files containing the same data:
 
         * ``/etc/pyfarm/agent/agent.yml``
 
