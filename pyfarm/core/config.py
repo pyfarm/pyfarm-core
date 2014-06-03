@@ -258,6 +258,8 @@ class Configuration(dict):
         * ``/etc/pyfarm/agent/agent.yml``
 
             ::
+                env:
+                    a: 0
                 foo: 1
                 bar: true
 
@@ -265,10 +267,20 @@ class Configuration(dict):
         * ``etc/pyfarm/agent/1.2.3/agent.yml``
 
             ::
+                env:
+                    a: 1
+                    b: 1
                 foo: 0
 
-    You'll end up with a singled merged configuration:
+    You'll end up with a single merged configuration.  Please note that the
+    only keys which will be merged in the configuration are the ``env`` key.
+    Configuration files are meant to store simple data and while it can be
+    used to store more complicate data it won't merge any other data
+    structures.
             ::
+                env:
+                    a: 1
+                    b: 1
                 foo: 0
                 bar: true
 
