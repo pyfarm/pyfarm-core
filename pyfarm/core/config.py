@@ -345,13 +345,10 @@ class Configuration(dict):
         return [
             sep.join(split[:index]) for index, _ in enumerate(split, start=1)]
 
-    def directories(self, filter_missing=True):
+    def directories(self):
         """
         Returns a list of platform dependent directories which may contain
         configuration files.
-
-        :param bool filter_missing:
-            If True then only return directories which exist
         """
         roots = []
         versions = self.split_version()
@@ -369,38 +366,45 @@ class Configuration(dict):
         if self.local_dir is not None:
             roots.append(join(self.local_dir, self.child_dir))
 
-        filterer = isdir if filter_missing else lambda _: True
-        paths = [join(root, tail) for root, tail in product(roots, versions)]
-        results = list(filter(filterer, paths))
+        all_directories = []
+        existing_directories = []
 
-        if results:
-            logger.debug(
-                "Found %s configuration directories: %s",
-                len(results), pformat(results))
+        for root, tail in product(roots, versions):
+            directory = join(root, tail)
+            all_directories.append(directory)
 
-        return results
+            if isdir(directory):
+                existing_directories.append(directory)
 
-    def files(self, filter_missing=True):
-        """
-        Returns a list of configuration files.
+        if not existing_directories:  # pragma: no cover
+            logger.error(
+                "No configuration directories found after looking for %s",
+                pformat(all_directories))
 
-        :param bool filter_missing:
-            If True only return files which exist.
-        """
-        directories = self.directories(filter_missing=filter_missing)
+        return existing_directories
+
+    def files(self):
+        """Returns a list of configuration files."""
+        directories = self.directories()
         if not directories:
             logger.error("No configuration directories found.")
             return []
 
         filename = self.service_name + self.file_extension
-        filepaths = [join(directory, filename) for directory in directories]
-        filterer = lambda _: True if not filter_missing else isfile
-        filtered_paths = list(filter(filterer, filepaths))
+        existing_files = []
 
-        if not filtered_paths:  # pragma: no cover
-            logger.error("No configuration files found.")
+        for directory in directories:
+            filepath = join(directory, filename)
 
-        return filtered_paths
+            if isfile(filepath):
+                existing_files.append(filepath)
+
+        if not existing_files:  # pragma: no cover
+            logger.error(
+                "No configuration file(s) %s were found in %s",
+                filename, pformat(directories))
+
+        return existing_files
 
     def load(self, environment=None):
         """

@@ -23,7 +23,7 @@ from textwrap import dedent
 from os.path import join, dirname
 
 from pyfarm.core.enums import PY26, LINUX, MAC, WINDOWS
-from pyfarm.core.testutil import TestCase as BaseTestCase
+from pyfarm.core.testutil import TestCase as BaseTestCase, requires_ci
 
 if PY26:
     from unittest2 import TestCase, skipIf
@@ -183,62 +183,33 @@ class TestConfiguration(BaseTestCase):
         config = Configuration("agent", None)
         self.assertEqual(config.split_version(), [])
 
-    def test_directories_unfiltered(self):
-        config = Configuration("agent", "1.2.3")
-        split = config.split_version()
-        self.assertEqual(
-            config.directories(filter_missing=False),
-            [join(config.system_root, config.child_dir + os.sep),
-             join(config.system_root, config.child_dir, split[0]),
-             join(config.system_root, config.child_dir, split[1]),
-             join(config.system_root, config.child_dir, split[2]),
-             join(config.local_dir, config.child_dir + os.sep),
-             join(config.local_dir, config.child_dir, split[0]),
-             join(config.local_dir, config.child_dir, split[1]),
-             join(config.local_dir, config.child_dir, split[2])])
-
-    def test_directories_filtered_with_dirs(self):
-        local_root = tempfile.mkdtemp()
-        config = Configuration("agent", "1.2.3")
-        config.system_root = local_root
-        split = config.split_version()
-        child_dirs = [
-            join(local_root, config.child_dir + "/"),
-            join(local_root, config.child_dir, split[0]),
-            join(local_root, config.child_dir, split[1]),
-            join(local_root, config.child_dir, split[2])]
-
-        for path in child_dirs:
-            try:
-                os.makedirs(path)
-            except (OSError, IOError):
-                pass
-
-            self.add_cleanup_path(path)
-
-        self.assertEqual(config.directories(filter_missing=True), child_dirs)
-
-    def test_directories_filtered_without_dirs(self):
-        config = Configuration("agent", "1.2.3")
-        config.local_dir = uuid.uuid4().hex
-        config.system_root = uuid.uuid4().hex
-        config.environment_root = uuid.uuid4().hex
-        self.assertEqual(config.directories(filter_missing=True), [])
-
-    def test_files_unfiltered(self):
+    @requires_ci  # this test modifies the system and should not run elsewhere
+    def test_files_system_root(self):
         config = Configuration("agent", "1.2.3")
         split = config.split_version()
         filename = config.service_name + config.file_extension
-        self.assertEqual(
-            config.files(filter_missing=False),
-            [join(config.system_root, config.child_dir + os.sep, filename),
-             join(config.system_root, config.child_dir, split[0], filename),
-             join(config.system_root, config.child_dir, split[1], filename),
-             join(config.system_root, config.child_dir, split[2], filename),
-             join(config.local_dir, config.child_dir + os.sep, filename),
-             join(config.local_dir, config.child_dir, split[0], filename),
-             join(config.local_dir, config.child_dir, split[1], filename),
-             join(config.local_dir, config.child_dir, split[2], filename)])
+        all_paths = [
+            join(config.system_root, config.child_dir + os.sep, filename),
+            join(config.system_root, config.child_dir, split[0], filename),
+            join(config.system_root, config.child_dir, split[1], filename),
+            join(config.system_root, config.child_dir, split[2], filename),
+            join(config.local_dir, config.child_dir + os.sep, filename),
+            join(config.local_dir, config.child_dir, split[0], filename),
+            join(config.local_dir, config.child_dir, split[1], filename),
+            join(config.local_dir, config.child_dir, split[2], filename)]
+
+        for path in all_paths:
+            parent_dir = dirname(path)
+
+            try:
+                os.makedirs(parent_dir)
+            except (OSError, IOError):
+                pass
+
+            with open(path, "wb"):
+                pass
+
+        self.assertEqual(config.files(), all_paths)
 
     def test_files_filtered_with_files(self):
         local_root = tempfile.mkdtemp()
@@ -260,11 +231,11 @@ class TestConfiguration(BaseTestCase):
             with open(path, "w") as stream:
                 self.add_cleanup_path(stream.name)
 
-        self.assertEqual(config.files(filter_missing=True), paths)
+        self.assertEqual(config.files(), paths)
 
     def test_files_filtered_without_files(self):
         config = Configuration("agent", "1.2.3")
-        self.assertEqual(config.files(filter_missing=True), [])
+        self.assertEqual(config.files(), [])
 
     def test_load_basic(self):
         local_root = tempfile.mkdtemp()
