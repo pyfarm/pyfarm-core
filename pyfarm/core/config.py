@@ -284,7 +284,7 @@ class Configuration(dict):
         The value built here will be copied onto the instance as ``system_root``
 
     :var string DEFAULT_FILE_EXTENSION:
-        The default file extension of the confiscation files.  This will
+        The default file extension of the configuration files.  This will
         default to ``.yml`` and will be copied to ``file_extension`` when
         the class is instanced.
 
