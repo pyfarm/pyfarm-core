@@ -249,10 +249,27 @@ class Configuration(dict):
         * ``etc/pyfarm/agent/1.2/agent.yml``
         * ``etc/pyfarm/agent/1.2.3/agent.yml``
 
-    :class:`Configuration` will only attempt to load files that exist ont
-    itself.  However if multiple ``agent.yml`` files existed the data from
-    each file would be used to update the instance allowing for overrides
-    and configuration lock down for specific versions.
+    :class:`Configuration` will only attempt to load data from files which
+    exist on the file system when :meth:`load` is called.  If multiple files
+    exist the data will be loaded from each file with the successive data
+    overwriting the last value.  So if you have two files containing data:
+
+        * ``/etc/pyfarm/agent/agent.yml``
+
+            ::
+                foo: 1
+                bar: true
+
+
+        * ``etc/pyfarm/agent/1.2.3/agent.yml``
+
+            ::
+                foo: 0
+
+    You'll end up with a singled merged configuration:
+            ::
+                foo: 0
+                bar: true
 
     :var string DEFAULT_CONFIG_ROOT:
         The system level directory that we should look for configuration
