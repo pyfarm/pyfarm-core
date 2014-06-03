@@ -260,7 +260,7 @@ class Configuration(dict):
 
             * **Linux** - /etc/
             * **Mac** - /Library/
-            * **Windows** - %APPDATA* (environment variable, varies by windows
+            * **Windows** - %APPDATA% (environment variable, varies by Windows
               version)
 
         The value built here will be coped onto the instance as ``system_root``
