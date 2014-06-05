@@ -284,7 +284,7 @@ class Configuration(dict):
                 foo: 0
                 bar: true
 
-    :var string DEFAULT_CONFIG_ROOT:
+    :var string DEFAULT_SYSTEM_ROOT:
         The system level directory that we should look for configuration
         files in.  This path is platform dependent:
 
@@ -331,14 +331,14 @@ class Configuration(dict):
         The version the version of the program running.
     """
     if LINUX:  # pragma: no cover
-        DEFAULT_CONFIG_ROOT = join(os.sep, "etc")
+        DEFAULT_SYSTEM_ROOT = join(os.sep, "etc")
     elif MAC:  # pragma: no cover
-        DEFAULT_CONFIG_ROOT = join(os.sep, "Library")
+        DEFAULT_SYSTEM_ROOT = join(os.sep, "Library")
     elif WINDOWS:  # pragma: no cover
-        DEFAULT_CONFIG_ROOT = os.environ["ProgramData"]
+        DEFAULT_SYSTEM_ROOT = os.environ["ProgramData"]
     else:  # pragma: no cover
         logger.warning("Failed to determine default configuration root")
-        DEFAULT_CONFIG_ROOT = None
+        DEFAULT_SYSTEM_ROOT = None
 
     DEFAULT_FILE_EXTENSION = ".yml"
     DEFAULT_LOCAL_DIRECTORY_NAME = "etc"
@@ -350,7 +350,7 @@ class Configuration(dict):
         self.service_name = service_name
         self.version = version
         self.file_extension = self.DEFAULT_FILE_EXTENSION
-        self.system_root = self.DEFAULT_CONFIG_ROOT
+        self.system_root = self.DEFAULT_SYSTEM_ROOT
         self.child_dir = join(
             self.DEFAULT_PARENT_APPLICATION_NAME, self.service_name)
         self.environment_root = read_env(

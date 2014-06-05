@@ -145,24 +145,24 @@ class TestConfiguration(BaseTestCase):
     @skipIf(not LINUX, "not linux")
     def test_linux_config_root(self):
         self.assertEqual(
-            Configuration.DEFAULT_CONFIG_ROOT, join(os.sep, "etc"))
+            Configuration.DEFAULT_SYSTEM_ROOT, join(os.sep, "etc"))
 
     @skipIf(not MAC, "not mac")
     def test_mac_config_root(self):
         self.assertEqual(
-            Configuration.DEFAULT_CONFIG_ROOT, join(os.sep, "Library"))
+            Configuration.DEFAULT_SYSTEM_ROOT, join(os.sep, "Library"))
 
     @skipIf(not WINDOWS, "not windows")
     def test_windows_config_root(self):
         self.assertEqual(
-            Configuration.DEFAULT_CONFIG_ROOT, os.environ["APPDATA"])
+            Configuration.DEFAULT_SYSTEM_ROOT, os.environ["APPDATA"])
 
     def test_instance_attributes(self):
         config = Configuration("agent", "1.2.3")
-        self.assertIsNotNone(config.DEFAULT_CONFIG_ROOT)
+        self.assertIsNotNone(config.DEFAULT_SYSTEM_ROOT)
         self.assertEqual(config.service_name, "agent")
         self.assertEqual(config.version, "1.2.3")
-        self.assertEqual(config.system_root, Configuration.DEFAULT_CONFIG_ROOT)
+        self.assertEqual(config.system_root, Configuration.DEFAULT_SYSTEM_ROOT)
         self.assertEqual(
             config.child_dir,
             join(config.DEFAULT_PARENT_APPLICATION_NAME, config.service_name))
