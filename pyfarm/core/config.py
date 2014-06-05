@@ -296,6 +296,17 @@ class Configuration(dict):
 
         The value built here will be copied onto the instance as ``system_root``
 
+    :var string DEFAULT_USER_ROOT:
+        The user level directory that we should look for configuration
+        files in.  This path is platform dependent:
+
+            * **Linux/Mac** - ~ (home directory)
+            * **Windows** - %APPDATA%.  An environment variable that
+              varies by the Windows version.  See
+              https://www.microsoft.com/security/portal/mmpc/shared/variables.aspx
+
+        The value built here will be copied onto the instance as ``user_root``
+
     :var string DEFAULT_FILE_EXTENSION:
         The default file extension of the configuration files.  This will
         default to ``.yml`` and will be copied to ``file_extension`` when
