@@ -355,7 +355,7 @@ class Configuration(dict):
         self.version = version
         self.file_extension = self.DEFAULT_FILE_EXTENSION
         self.system_root = self.DEFAULT_SYSTEM_ROOT
-        self.user_root = self.user_root
+        self.user_root = self.DEFAULT_USER_ROOT
         self.child_dir = join(
             self.DEFAULT_PARENT_APPLICATION_NAME, self.service_name)
         self.environment_root = read_env(
