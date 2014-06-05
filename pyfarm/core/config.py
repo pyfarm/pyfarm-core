@@ -244,6 +244,10 @@ class Configuration(dict):
         * ``/etc/pyfarm/agent/1/agent.yml``
         * ``/etc/pyfarm/agent/1.2/agent.yml``
         * ``/etc/pyfarm/agent/1.2.3/agent.yml``
+        * ``~/.pyfarm/agent/agent.yml``
+        * ``~/.pyfarm/agent/1/agent.yml``
+        * ``~/.pyfarm/agent/1.2/agent.yml``
+        * ``~/.pyfarm/agent/1.2.3/agent.yml``
         * ``etc/pyfarm/agent/agent.yml``
         * ``etc/pyfarm/agent/1/agent.yml``
         * ``etc/pyfarm/agent/1.2/agent.yml``
