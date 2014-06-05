@@ -337,7 +337,7 @@ class Configuration(dict):
     elif WINDOWS:  # pragma: no cover
         DEFAULT_SYSTEM_ROOT = os.environ["ProgramData"]
     else:  # pragma: no cover
-        logger.warning("Failed to determine default configuration root")
+        logger.warning("Failed to determine default configuration roots")
         DEFAULT_SYSTEM_ROOT = None
 
     DEFAULT_FILE_EXTENSION = ".yml"

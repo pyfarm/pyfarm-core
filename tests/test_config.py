@@ -136,24 +136,26 @@ class TestConfiguration(BaseTestCase):
         self.assertEqual(Configuration.DEFAULT_LOCAL_DIRECTORY_NAME, "etc")
 
     def test_parent_application_name(self):
-        self.assertEqual(Configuration.DEFAULT_PARENT_APPLICATION_NAME, "pyfarm")
+        self.assertEqual(
+            Configuration.DEFAULT_PARENT_APPLICATION_NAME, "pyfarm")
 
     def test_environment_variable(self):
         self.assertEqual(
-            Configuration.DEFAULT_ENVIRONMENT_PATH_VARIABLE, "PYFARM_CONFIG_ROOT")
+            Configuration.DEFAULT_ENVIRONMENT_PATH_VARIABLE,
+            "PYFARM_CONFIG_ROOT")
 
     @skipIf(not LINUX, "not linux")
-    def test_linux_config_root(self):
+    def test_linux_system_root(self):
         self.assertEqual(
             Configuration.DEFAULT_SYSTEM_ROOT, join(os.sep, "etc"))
 
     @skipIf(not MAC, "not mac")
-    def test_mac_config_root(self):
+    def test_mac_system_root(self):
         self.assertEqual(
             Configuration.DEFAULT_SYSTEM_ROOT, join(os.sep, "Library"))
 
     @skipIf(not WINDOWS, "not windows")
-    def test_windows_config_root(self):
+    def test_windows_system_root(self):
         self.assertEqual(
             Configuration.DEFAULT_SYSTEM_ROOT, os.environ["ProgramData"])
 
