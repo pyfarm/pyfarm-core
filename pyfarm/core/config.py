@@ -290,8 +290,9 @@ class Configuration(dict):
 
             * **Linux** - /etc/
             * **Mac** - /Library/
-            * **Windows** - %APPDATA% (environment variable, varies by Windows
-              version)
+            * **Windows** - %ProgramData%.  An environment variable that
+              varies by the Windows version.  See
+              https://www.microsoft.com/security/portal/mmpc/shared/variables.aspx
 
         The value built here will be copied onto the instance as ``system_root``
 
@@ -323,7 +324,7 @@ class Configuration(dict):
     elif MAC:  # pragma: no cover
         DEFAULT_CONFIG_ROOT = join(os.sep, "Library")
     elif WINDOWS:  # pragma: no cover
-        DEFAULT_CONFIG_ROOT = os.environ["APPDATA"]
+        DEFAULT_CONFIG_ROOT = os.environ["ProgramData"]
     else:  # pragma: no cover
         logger.warning("Failed to determine default configuration root")
         DEFAULT_CONFIG_ROOT = None
