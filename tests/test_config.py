@@ -20,7 +20,7 @@ import os
 import tempfile
 import uuid
 from textwrap import dedent
-from os.path import join, dirname
+from os.path import join, dirname, expandvars, expanduser
 
 from pyfarm.core.enums import PY26, LINUX, MAC, WINDOWS
 from pyfarm.core.testutil import TestCase as BaseTestCase, requires_ci
@@ -157,7 +157,22 @@ class TestConfiguration(BaseTestCase):
     @skipIf(not WINDOWS, "not windows")
     def test_windows_system_root(self):
         self.assertEqual(
-            Configuration.DEFAULT_SYSTEM_ROOT, os.environ["ProgramData"])
+            Configuration.DEFAULT_SYSTEM_ROOT, expandvars("$ProgramData"))
+
+    @skipIf(not LINUX, "not linux")
+    def test_linux_user_root(self):
+        self.assertEqual(
+            Configuration.DEFAULT_USER_ROOT, expanduser("~"))
+
+    @skipIf(not MAC, "not mac")
+    def test_mac_user_root(self):
+        self.assertEqual(
+            Configuration.DEFAULT_USER_ROOT, expanduser("~"))
+
+    @skipIf(not WINDOWS, "not windows")
+    def test_windows_user_root(self):
+        self.assertEqual(
+            Configuration.DEFAULT_USER_ROOT, expandvars("$APPDATA"))
 
     def test_instance_attributes(self):
         config = Configuration("agent", "1.2.3")
