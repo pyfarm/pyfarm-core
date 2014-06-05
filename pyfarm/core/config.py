@@ -291,7 +291,7 @@ class Configuration(dict):
             * **Linux** - /etc/
             * **Mac** - /Library/
             * **Windows** - %ProgramData%.  An environment variable that
-              varies by the Windows version.  See
+              varies depending on the Windows version.  See Microsoft's docs:
               https://www.microsoft.com/security/portal/mmpc/shared/variables.aspx
 
         The value built here will be copied onto the instance as ``system_root``
@@ -302,7 +302,7 @@ class Configuration(dict):
 
             * **Linux/Mac** - ~ (home directory)
             * **Windows** - %APPDATA%.  An environment variable that
-              varies by the Windows version.  See
+              varies depending on the Windows version.  See Microsoft's docs:
               https://www.microsoft.com/security/portal/mmpc/shared/variables.aspx
 
         The value built here will be copied onto the instance as ``user_root``
@@ -384,12 +384,16 @@ class Configuration(dict):
         versions.insert(0, "")  # the 'version free' directory
 
         # If provided, insert the default root
-        if self.system_root is not None:
+        if self.system_root:  # could be empty in the environment
             roots.append(join(self.system_root, self.child_dir))
 
         # If provided, append the root discovered in the environment
         if self.environment_root is not None:
             roots.append(join(self.environment_root, self.child_dir))
+
+        # If provided append the user directory
+        if self.user_root:  # could be empty in the environment
+            roots.append(join(self.user_root, self.child_dir))
 
         # If provided append a local directory
         if self.local_dir is not None:
