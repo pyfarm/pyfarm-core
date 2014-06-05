@@ -155,7 +155,7 @@ class TestConfiguration(BaseTestCase):
     @skipIf(not WINDOWS, "not windows")
     def test_windows_config_root(self):
         self.assertEqual(
-            Configuration.DEFAULT_SYSTEM_ROOT, os.environ["APPDATA"])
+            Configuration.DEFAULT_SYSTEM_ROOT, os.environ["ProgramData"])
 
     def test_instance_attributes(self):
         config = Configuration("agent", "1.2.3")
