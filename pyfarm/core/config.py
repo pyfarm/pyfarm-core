@@ -35,7 +35,7 @@ from ast import literal_eval
 from functools import partial
 from itertools import product
 from pprint import pformat
-from os.path import isfile, join, isdir
+from os.path import isfile, join, isdir, expanduser, expandvars
 
 try:
     from StringIO import StringIO
@@ -332,13 +332,17 @@ class Configuration(dict):
     """
     if LINUX:  # pragma: no cover
         DEFAULT_SYSTEM_ROOT = join(os.sep, "etc")
+        DEFAULT_USER_ROOT = expanduser("~")
     elif MAC:  # pragma: no cover
         DEFAULT_SYSTEM_ROOT = join(os.sep, "Library")
+        DEFAULT_USER_ROOT = expanduser("~")
     elif WINDOWS:  # pragma: no cover
-        DEFAULT_SYSTEM_ROOT = os.environ["ProgramData"]
+        DEFAULT_SYSTEM_ROOT = expandvars("$ProgramData")
+        DEFAULT_USER_ROOT = expandvars("$APPDATA")
     else:  # pragma: no cover
         logger.warning("Failed to determine default configuration roots")
         DEFAULT_SYSTEM_ROOT = None
+        DEFAULT_USER_ROOT = None
 
     DEFAULT_FILE_EXTENSION = ".yml"
     DEFAULT_LOCAL_DIRECTORY_NAME = "etc"
@@ -351,6 +355,7 @@ class Configuration(dict):
         self.version = version
         self.file_extension = self.DEFAULT_FILE_EXTENSION
         self.system_root = self.DEFAULT_SYSTEM_ROOT
+        self.user_root = self.user_root
         self.child_dir = join(
             self.DEFAULT_PARENT_APPLICATION_NAME, self.service_name)
         self.environment_root = read_env(
