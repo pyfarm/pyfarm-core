@@ -132,6 +132,11 @@ Describes which address should be used to contact the agent
     some conditions.  Generally used by
     :func:`pyfarm.core.utility.convert.none`
 
+:const INTERACTIVE_INTERPRETER:
+    True when we're running inside an interactive interpreter such as
+    a Python shell like IPython.  This value will also be True if
+    there's an active debugger.
+
 :const OS:
     The current os type, the value will map to one of the values in
     :class:`.OperatingSystem`
@@ -147,31 +152,6 @@ Describes which address should be used to contact the agent
 
 :const MAC:
     True if ``OS == OperatingSystem.MAC``
-
-:const CASE_SENSITIVE_FILESYSTEM:
-    True if the file system is case sensitive
-
-:const CASE_SENSITIVE_ENVIRONMENT:
-    True if environment variables are case sensitive
-
-:const ARCHITECTURE:
-    The system architecture, containing either ``32`` or ``64`` as an integer
-
-:const ARCHITECTURE64:
-    The system architecture, True if ``ARCHITECTURE == 64``
-
-:const ARCHITECTURE32:
-    The system architecture, True if ``ARCHITECTURE == 32``
-
-:const INTERPRETER_ARCHITECTURE:
-    The interpreter architecture, containing either ``32`` or ``64`` as an
-    integer
-
-:const INTERPRETER_ARCHITECTURE32:
-    The interpreter architecture, True if ``INTERPRETER_ARCHITECTURE == 32``
-
-:const INTERPRETER_ARCHITECTURE64:
-    The interpreter architecture, True if ``INTERPRETER_ARCHITECTURE == 64``
 """
 
 import sys
@@ -459,6 +439,7 @@ def operating_system(plat=sys.platform):
     else:
         return "other"
 
+INTERACTIVE_INTERPRETER = hasattr(sys, "ps1") or sys.gettrace() is not None
 
 # operating system information
 OS = operating_system()

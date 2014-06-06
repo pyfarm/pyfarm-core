@@ -6,10 +6,14 @@ python:
   - 3.3
   - 3.4
 
+before_install
+  - curl https://raw.githubusercontent.com/pyfarm/pyfarm/master/misc/retry.sh -o retry.sh
+
 install:
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then pip install unittest2; fi
-  - pip install nose coverage python-coveralls "psutil>=1.2.0"
-  - pip install .
+  - source retry.sh
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then retry pip install unittest2; fi
+  - retry pip install nose coverage python-coveralls "psutil>=1.2.0"
+  - retry pip install .
 
 script:
   - pip freeze

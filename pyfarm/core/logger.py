@@ -29,6 +29,8 @@ import logging
 import warnings
 from logging import Formatter
 
+from pyfarm.core.enums import INTERACTIVE_INTERPRETER
+
 # Import or construct the necessary objects depending on the Python version
 # and use sys.version_info directly to avoid possible circular import issues.
 PY_MAJOR, PY_MINOR = sys.version_info[0:2]
@@ -84,34 +86,53 @@ else:  # pragma: no cover
                 warnings.showwarning = _warnings_showwarning
                 _warnings_showwarning = None
 
-try:
-    colorama
-except NameError:
-    from colorama import init, Fore, Back, Style
-    init()
+if not INTERACTIVE_INTERPRETER:
+    try:
+        colorama
+    except NameError:
+        from colorama import init, Fore, Back, Style
+        init()
+
+
+NO_STYLE = ("", "")
 
 
 class ColorFormatter(Formatter):
-    """Adds colorized formatting to log messages using :mod:`colorama`"""
-    FORMATS = {
-        logging.DEBUG: (Style.DIM, Style.RESET_ALL),
-        logging.WARNING: (Fore.YELLOW, Fore.RESET),
-        logging.ERROR: (Fore.RED, Fore.RESET),
-        logging.CRITICAL: (
-            Fore.RED + Style.BRIGHT, Fore.RESET + Style.RESET_ALL)
-    }
+    """
+    Adds colorized formatting to log messages using :mod:`colorama` so long
+    as we're not running an interactive interpreter or a debugger.
+    """
+    if not INTERACTIVE_INTERPRETER:
+        FORMATS = {
+            logging.DEBUG: (Style.DIM, Style.RESET_ALL),
+            logging.WARNING: (Fore.YELLOW, Fore.RESET),
+            logging.ERROR: (Fore.RED, Fore.RESET),
+            logging.CRITICAL: (
+                Fore.RED + Style.BRIGHT, Fore.RESET + Style.RESET_ALL)}
 
-    # Python 2.6 uses old style classes which means we can't use
-    # super().  So we construct the proper method at the class level
-    # so we can safe an if statement for each function call.
-    if not PY26:  # pragma: no cover
-        def format(self, record):
-            head, tail = self.FORMATS.get(record.levelno, ("", ""))
-            return head + super(ColorFormatter, self).format(record) + tail
-    else:  # pragma: no cover
-        def format(self, record):
-            head, tail = self.FORMATS.get(record.levelno, ("", ""))
-            return head + Formatter.format(self, record) + tail
+        # Python 2.6 uses old style classes which means we can't use
+        # super().  So we construct the proper method at the class level
+        # so we can safe an if statement for each function call.
+        if not PY26:  # pragma: no cover
+            def format(self, record):
+                head, tail = self.FORMATS.get(record.levelno, NO_STYLE)
+                return head + super(ColorFormatter, self).format(record) + tail
+        else:  # pragma: no cover
+            def format(self, record):
+                head, tail = self.FORMATS.get(record.levelno, NO_STYLE)
+                return head + Formatter.format(self, record) + tail
+
+    else:
+        warnings.warn_explicit(
+            "Interactive interpreter or debugger is active, "
+            "disabling colorized logging.", RuntimeWarning, "logger.py",
+            0, module="pyfarm.core.logger")
+
+        FORMATS = {
+            logging.DEBUG: NO_STYLE,
+            logging.WARNING: NO_STYLE,
+            logging.ERROR: NO_STYLE,
+            logging.CRITICAL: NO_STYLE}
 
 
 class StandardOutputStreamHandler(logging.StreamHandler):
