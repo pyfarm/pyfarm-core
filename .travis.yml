@@ -6,7 +6,7 @@ python:
   - 3.3
   - 3.4
 
-before_install
+before_install:
   - curl https://raw.githubusercontent.com/pyfarm/pyfarm/master/misc/retry.sh -o retry.sh
 
 install:
