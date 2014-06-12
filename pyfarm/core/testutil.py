@@ -36,7 +36,27 @@ def skip_on_ci(func):
         return func(*args, **kwargs)
     return wrapper
 
+
+def requires_ci(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if "BUILDBOT_UUID" not in os.environ or "TRAVIS" not in os.environ:
+            raise SkipTest
+        return func(*args, **kwargs)
+    return wrapper
+
 from pyfarm.core.enums import STRING_TYPES
+
+
+def rm(path):
+    try:
+        os.remove(path)
+    except Exception:
+        pass
+    try:
+        shutil.rmtree(path)
+    except Exception:
+        pass
 
 
 class TestCase(unittest.TestCase):
@@ -87,3 +107,6 @@ class TestCase(unittest.TestCase):
             map(self.remove, self.temp_directories.copy())
         except AttributeError:
             pass
+
+    def add_cleanup_path(self, path):
+        self.addCleanup(rm, path)

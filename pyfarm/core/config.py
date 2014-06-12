@@ -28,18 +28,29 @@ in various forms.
 :const BOOLEAN_FALSE:
     set of values which will return a False boolean value from
     :func:`.read_env_bool`
-
-:const NOTSET:
-    instanced :class:`object` which is returned when no data was found and
-    no default was provided
 """
 
 import os
-from functools import partial
 from ast import literal_eval
+from functools import partial
+from itertools import product
+from pprint import pformat
+from os.path import isfile, join, isdir, expanduser, expandvars
+
+try:
+    from StringIO import StringIO
+except ImportError:  # pragma: no cover
+    from io import StringIO
+
+import yaml
+try:
+    from yaml.loader import CLoader as Loader
+except ImportError:  # pragma: no cover
+    from yaml.loader import Loader
 
 from pyfarm.core.logger import getLogger
-from pyfarm.core.enums import STRING_TYPES, NUMERIC_TYPES, NOTSET
+from pyfarm.core.enums import (
+    STRING_TYPES, NUMERIC_TYPES, NOTSET, LINUX, MAC, WINDOWS)
 
 logger = getLogger("core.config")
 
@@ -217,3 +228,253 @@ def read_env_strict_number(*args, **kwargs):
 
 read_env_int = partial(read_env_strict_number, number_type=int)
 read_env_float = partial(read_env_strict_number, number_type=float)
+
+
+class Configuration(dict):
+    """
+    Main object responsible for finding, loading, and
+    merging configuration data.  By default this class does nothing
+    until :meth:`load` is called.  Once this method is called
+    :class:`Configuration` class will populate itself with data loaded
+    from the configuration files.  The configuration files themselves can
+    be loaded from multiple location depending on the system's setup.  For
+    example on Linux you might end up attempting to load:
+
+        * ``/etc/pyfarm/agent/agent.yml``
+        * ``/etc/pyfarm/agent/1/agent.yml``
+        * ``/etc/pyfarm/agent/1.2/agent.yml``
+        * ``/etc/pyfarm/agent/1.2.3/agent.yml``
+        * ``~/.pyfarm/agent/agent.yml``
+        * ``~/.pyfarm/agent/1/agent.yml``
+        * ``~/.pyfarm/agent/1.2/agent.yml``
+        * ``~/.pyfarm/agent/1.2.3/agent.yml``
+        * ``etc/pyfarm/agent/agent.yml``
+        * ``etc/pyfarm/agent/1/agent.yml``
+        * ``etc/pyfarm/agent/1.2/agent.yml``
+        * ``etc/pyfarm/agent/1.2.3/agent.yml``
+
+    :class:`Configuration` will only attempt to load data from files which
+    exist on the file system when :meth:`load` is called.  If multiple files
+    exist the data will be loaded from each file with the successive data
+    overwriting the value from the previously loaded configuration file. So
+    if you have two files containing the same data:
+
+        * ``/etc/pyfarm/agent/agent.yml``
+
+            ::
+                env:
+                    a: 0
+                foo: 1
+                bar: true
+
+
+        * ``etc/pyfarm/agent/1.2.3/agent.yml``
+
+            ::
+                env:
+                    a: 1
+                    b: 1
+                foo: 0
+
+    You'll end up with a single merged configuration.  Please note that the
+    only keys which will be merged in the configuration are the ``env`` key.
+    Configuration files are meant to store simple data and while it can be
+    used to store more complicate data it won't merge any other data
+    structures.
+            ::
+                env:
+                    a: 1
+                    b: 1
+                foo: 0
+                bar: true
+
+    :var string DEFAULT_SYSTEM_ROOT:
+        The system level directory that we should look for configuration
+        files in.  This path is platform dependent:
+
+            * **Linux** - /etc/
+            * **Mac** - /Library/
+            * **Windows** - %ProgramData%.  An environment variable that
+              varies depending on the Windows version.  See Microsoft's docs:
+              https://www.microsoft.com/security/portal/mmpc/shared/variables.aspx
+
+        The value built here will be copied onto the instance as ``system_root``
+
+    :var string DEFAULT_USER_ROOT:
+        The user level directory that we should look for configuration
+        files in.  This path is platform dependent:
+
+            * **Linux/Mac** - ~ (home directory)
+            * **Windows** - %APPDATA%.  An environment variable that
+              varies depending on the Windows version.  See Microsoft's docs:
+              https://www.microsoft.com/security/portal/mmpc/shared/variables.aspx
+
+        The value built here will be copied onto the instance as ``user_root``
+
+    :var string DEFAULT_FILE_EXTENSION:
+        The default file extension of the configuration files.  This will
+        default to ``.yml`` and will be copied to ``file_extension`` when
+        the class is instanced.
+
+    :var string DEFAULT_LOCAL_DIRECTORY_NAME:
+        A directory local to the current process which we should search
+        for configuration files in.  This will default to ``etc`` and
+        will be copied to ``local_dir`` when the class is instanced.
+
+    :var string DEFAULT_PARENT_APPLICATION_NAME:
+        The base name of the parent application.  This used used to build
+        child directories and will default to ``pyfarm``.
+
+    :var string DEFAULT_ENVIRONMENT_PATH_VARIABLE:
+        A environment variable to search for a configuration path in.
+
+    :param string service_name:
+        The name of the service itself, typically 'master' or 'agent'.
+
+    :param string version:
+        The version the version of the program running.
+    """
+    if LINUX:  # pragma: no cover
+        DEFAULT_SYSTEM_ROOT = join(os.sep, "etc")
+        DEFAULT_USER_ROOT = expanduser("~")
+    elif MAC:  # pragma: no cover
+        DEFAULT_SYSTEM_ROOT = join(os.sep, "Library")
+        DEFAULT_USER_ROOT = expanduser("~")
+    elif WINDOWS:  # pragma: no cover
+        DEFAULT_SYSTEM_ROOT = expandvars("$ProgramData")
+        DEFAULT_USER_ROOT = expandvars("$APPDATA")
+    else:  # pragma: no cover
+        logger.warning("Failed to determine default configuration roots")
+        DEFAULT_SYSTEM_ROOT = None
+        DEFAULT_USER_ROOT = None
+
+    DEFAULT_FILE_EXTENSION = ".yml"
+    DEFAULT_LOCAL_DIRECTORY_NAME = "etc"
+    DEFAULT_PARENT_APPLICATION_NAME = "pyfarm"
+    DEFAULT_ENVIRONMENT_PATH_VARIABLE = "PYFARM_CONFIG_ROOT"
+
+    def __init__(self, service_name, version):
+        super(Configuration, self).__init__()
+        self.service_name = service_name
+        self.version = version
+        self.file_extension = self.DEFAULT_FILE_EXTENSION
+        self.system_root = self.DEFAULT_SYSTEM_ROOT
+        self.user_root = self.DEFAULT_USER_ROOT
+        self.child_dir = join(
+            self.DEFAULT_PARENT_APPLICATION_NAME, self.service_name)
+        self.environment_root = read_env(
+            self.DEFAULT_ENVIRONMENT_PATH_VARIABLE, None)
+        self.local_dir = self.DEFAULT_LOCAL_DIRECTORY_NAME
+
+    def split_version(self, sep="."):
+        """
+        Splits ``self.version`` into a tuple of individual versions.  For
+        example ``1.2.3`` would be split into ``['1', '1.2', '1.2.3']``
+        """
+        if self.version is None:
+            return []
+
+        split = self.version.split(sep)
+        return [
+            sep.join(split[:index]) for index, _ in enumerate(split, start=1)]
+
+    def directories(self):
+        """
+        Returns a list of platform dependent directories which may contain
+        configuration files.
+        """
+        roots = []
+        versions = self.split_version()
+        versions.insert(0, "")  # the 'version free' directory
+
+        # If provided, insert the default root
+        if self.system_root:  # could be empty in the environment
+            roots.append(join(self.system_root, self.child_dir))
+
+        # If provided, append the root discovered in the environment
+        if self.environment_root is not None:
+            roots.append(join(self.environment_root, self.child_dir))
+
+        # If provided append the user directory
+        if self.user_root:  # could be empty in the environment
+            roots.append(join(self.user_root, self.child_dir))
+
+        # If provided append a local directory
+        if self.local_dir is not None:
+            roots.append(join(self.local_dir, self.child_dir))
+
+        all_directories = []
+        existing_directories = []
+
+        for root, tail in product(roots, versions):
+            directory = join(root, tail)
+            all_directories.append(directory)
+
+            if isdir(directory):
+                existing_directories.append(directory)
+
+        if not existing_directories:  # pragma: no cover
+            logger.error(
+                "No configuration directories found after looking for %s",
+                pformat(all_directories))
+
+        return existing_directories
+
+    def files(self):
+        """Returns a list of configuration files."""
+        directories = self.directories()
+        if not directories:
+            logger.error("No configuration directories found.")
+            return []
+
+        filename = self.service_name + self.file_extension
+        existing_files = []
+
+        for directory in directories:
+            filepath = join(directory, filename)
+
+            if isfile(filepath):
+                existing_files.append(filepath)
+
+        if not existing_files:  # pragma: no cover
+            logger.error(
+                "No configuration file(s) %s were found in %s",
+                filename, pformat(directories))
+
+        return existing_files
+
+    def load(self, environment=None):
+        """
+        Loads data from the configuration files.  Any data present
+        in the ``env`` key in the configuration files will update
+        :arg:`environment`.
+
+        :param dict environment:
+            A dictionary to load data in the ``env`` key from
+            the configuration files into.  This would typically be
+            set to :var:`os.environ` so the environment itself could
+            be updated.
+        """
+        for filepath in self.files():
+            logger.debug("Reading %s", filepath)
+
+            with open(filepath, "rb") as stream:
+                try:
+                    data = yaml.load(stream, Loader=Loader)
+
+                except yaml.YAMLError as e:  # pragma: no cover
+                    logger.error("Failed to load %r: %s", filepath, e)
+                    continue
+
+            if environment is not None and "env" in data:
+                config_environment = data.pop("env")
+                assert isinstance(config_environment, dict)
+                environment.update(config_environment)
+
+            elif environment is None:
+                logger.warning(
+                    "No environment was provided to be populated by the "
+                    "configuration file(s)")
+
+            # Update this instance with the loaded data
+            self.update(data)
