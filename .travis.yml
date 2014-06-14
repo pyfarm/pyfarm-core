@@ -8,12 +8,12 @@ python:
 
 before_install:
   - curl https://raw.githubusercontent.com/pyfarm/pyfarm/master/misc/retry.sh -o retry.sh
+  - source retry.sh
 
 install:
-  - source retry.sh
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then retry pip install unittest2; fi
-  - retry pip install nose coverage python-coveralls "psutil>=1.2.0"
-  - retry pip install .
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then retry pip install unittest2 --quiet; fi
+  - retry pip install nose coverage python-coveralls "psutil>=1.2.0" --quiet
+  - retry pip install -e . --egg --quiet
 
 script:
   - pip freeze
