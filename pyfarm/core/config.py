@@ -243,6 +243,7 @@ class Configuration(dict):
     be loaded from multiple location depending on the system's setup.  For
     example on Linux you might end up attempting to load:
 
+        * The default configuration as provided by PyFarm's source.
         * ``/etc/pyfarm/agent/agent.yml``
         * ``/etc/pyfarm/agent/1/agent.yml``
         * ``/etc/pyfarm/agent/1.2/agent.yml``
