@@ -451,14 +451,10 @@ class Configuration(dict):
         for root, tail in product(roots, versions):
             directory = join(root, tail)
             all_directories.append(directory)
+            self.searched.append(directory)
 
             if isdir(directory):
                 existing_directories.append(directory)
-
-        if not existing_directories:  # pragma: no cover
-            logger.error(
-                "No configuration directories found after looking for %s",
-                pformat(all_directories))
 
         return existing_directories
 
