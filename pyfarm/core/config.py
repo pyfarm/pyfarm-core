@@ -35,7 +35,7 @@ from ast import literal_eval
 from functools import partial
 from itertools import product
 from pprint import pformat
-from os.path import isfile, join, isdir, expanduser, expandvars
+from os.path import isfile, join, isdir, expanduser, expandvars, dirname
 
 try:
     from StringIO import StringIO
@@ -462,12 +462,18 @@ class Configuration(dict):
     def files(self):
         """Returns a list of configuration files."""
         directories = self.directories()
-        if not directories:
-            logger.error("No configuration directories found.")
-            return []
-
         filename = self.name + self.file_extension
         existing_files = []
+
+        if self.package_configuration is not None:
+            self.searched.insert(0, dirname(self.package_configuration))
+            if isfile(self.package_configuration):
+                existing_files.append(self.package_configuration)
+            else:
+                logger.warning(
+                    "%r does not have a default configuration file. Expected "
+                    "to find %r but this path does not exist.",
+                    self._name, self.package_configuration)
 
         for directory in directories:
             filepath = join(directory, filename)
