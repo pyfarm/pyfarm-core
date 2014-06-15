@@ -35,14 +35,15 @@ from ast import literal_eval
 from functools import partial
 from itertools import product
 from pprint import pformat
-from os.path import isfile, join, isdir, expanduser, expandvars
+from os.path import isfile, join, isdir, expanduser, expandvars, dirname
 
 try:
     from StringIO import StringIO
 except ImportError:  # pragma: no cover
     from io import StringIO
 
-from pkg_resources import DistributionNotFound, get_distribution
+from pkg_resources import (
+    DistributionNotFound, get_distribution, resource_filename)
 
 import yaml
 try:
@@ -242,6 +243,7 @@ class Configuration(dict):
     be loaded from multiple location depending on the system's setup.  For
     example on Linux you might end up attempting to load:
 
+        * The default configuration as provided by PyFarm's source.
         * ``/etc/pyfarm/agent/agent.yml``
         * ``/etc/pyfarm/agent/1/agent.yml``
         * ``/etc/pyfarm/agent/1.2/agent.yml``
@@ -362,6 +364,16 @@ class Configuration(dict):
     def __init__(self, name, version=None):
         super(Configuration, self).__init__()
 
+        self._name = name
+        self.loaded = ()
+        self.searched = []
+        self.file_extension = self.DEFAULT_FILE_EXTENSION
+        self.system_root = self.DEFAULT_SYSTEM_ROOT
+        self.user_root = self.DEFAULT_USER_ROOT
+        self.local_dir = self.DEFAULT_LOCAL_DIRECTORY_NAME
+        self.environment_root = read_env(
+            self.DEFAULT_ENVIRONMENT_PATH_VARIABLE, None)
+
         # If `name` is an import name and an
         # explict version was not provided then try
         # to find one automatically.
@@ -372,23 +384,30 @@ class Configuration(dict):
             except DistributionNotFound:
                 raise ValueError(
                     "%r is not a Python package so you must provide "
-                    "a version." % name)
+                    "a version." % self._name)
             else:
                 self.version = self.distribution.version
-                self.name = name.split(".")[-1]
+                self.name = self._name.split(".")[-1]
+
+                # Try to locate the package's built-in configuration
+                # file.  This will be loaded before anything else
+                # to provide the default values.
+                try:
+                    self.package_configuration = resource_filename(
+                        name, join("etc", self.name + self.file_extension))
+                except ImportError:
+                    logger.warning(
+                        "Could not determine the default configuration file "
+                        "path for %s", self.name)
+                    self.package_configuration = None
+
         else:
             self.distribution = None
             self.version = version
-            self.name = name
+            self.name = self._name
+            self.package_configuration = None
 
-        self.file_extension = self.DEFAULT_FILE_EXTENSION
-        self.system_root = self.DEFAULT_SYSTEM_ROOT
-        self.user_root = self.DEFAULT_USER_ROOT
-        self.child_dir = join(
-            self.DEFAULT_PARENT_APPLICATION_NAME, self.name)
-        self.environment_root = read_env(
-            self.DEFAULT_ENVIRONMENT_PATH_VARIABLE, None)
-        self.local_dir = self.DEFAULT_LOCAL_DIRECTORY_NAME
+        self.child_dir = join(self.DEFAULT_PARENT_APPLICATION_NAME, self.name)
 
     def split_version(self, sep="."):
         """
@@ -433,26 +452,28 @@ class Configuration(dict):
         for root, tail in product(roots, versions):
             directory = join(root, tail)
             all_directories.append(directory)
+            self.searched.append(directory)
 
             if isdir(directory):
                 existing_directories.append(directory)
-
-        if not existing_directories:  # pragma: no cover
-            logger.error(
-                "No configuration directories found after looking for %s",
-                pformat(all_directories))
 
         return existing_directories
 
     def files(self):
         """Returns a list of configuration files."""
         directories = self.directories()
-        if not directories:
-            logger.error("No configuration directories found.")
-            return []
-
         filename = self.name + self.file_extension
         existing_files = []
+
+        if self.package_configuration is not None:
+            self.searched.insert(0, dirname(self.package_configuration))
+            if isfile(self.package_configuration):
+                existing_files.append(self.package_configuration)
+            else:
+                logger.warning(
+                    "%r does not have a default configuration file. Expected "
+                    "to find %r but this path does not exist.",
+                    self._name, self.package_configuration)
 
         for directory in directories:
             filepath = join(directory, filename)
@@ -479,9 +500,9 @@ class Configuration(dict):
             set to :var:`os.environ` so the environment itself could
             be updated.
         """
+        loaded = []
+        self.searched = []
         for filepath in self.files():
-            logger.debug("Reading %s", filepath)
-
             with open(filepath, "rb") as stream:
                 try:
                     data = yaml.load(stream, Loader=Loader)
@@ -490,8 +511,10 @@ class Configuration(dict):
                     logger.error("Failed to load %r: %s", filepath, e)
                     continue
 
+            loaded.append(filepath)
+
             # Empty file
-            if data is None:
+            if not data:
                 continue
 
             if environment is not None and "env" in data:
@@ -506,3 +529,15 @@ class Configuration(dict):
 
             # Update this instance with the loaded data
             self.update(data)
+
+        # Store loaded/searched for external use
+        self.loaded = tuple(loaded)
+        self.searched = tuple(self.searched)
+
+        if self.loaded:
+            logger.info(
+                "Loaded configuration file(s): %s", pformat(self.loaded))
+        else:
+            logger.warning(
+                "No configuration files were loaded after searching %s",
+                pformat(self.searched))
