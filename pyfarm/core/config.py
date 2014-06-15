@@ -383,10 +383,10 @@ class Configuration(dict):
             except DistributionNotFound:
                 raise ValueError(
                     "%r is not a Python package so you must provide "
-                    "a version." % name)
+                    "a version." % self._name)
             else:
                 self.version = self.distribution.version
-                self.name = name.split(".")[-1]
+                self.name = self._name.split(".")[-1]
 
                 # Try to locate the package's built-in configuration
                 # file.  This will be loaded before anything else
@@ -403,10 +403,10 @@ class Configuration(dict):
         else:
             self.distribution = None
             self.version = version
-            self.name = name
+            self.name = self._name
+            self.package_configuration = None
 
-        self.child_dir = join(
-            self.DEFAULT_PARENT_APPLICATION_NAME, self.name)
+        self.child_dir = join(self.DEFAULT_PARENT_APPLICATION_NAME, self.name)
 
     def split_version(self, sep="."):
         """
