@@ -42,6 +42,8 @@ try:
 except ImportError:  # pragma: no cover
     from io import StringIO
 
+from pkg_resources import DistributionNotFound, get_distribution
+
 import yaml
 try:
     from yaml.loader import CLoader as Loader
@@ -328,8 +330,12 @@ class Configuration(dict):
     :var string DEFAULT_ENVIRONMENT_PATH_VARIABLE:
         A environment variable to search for a configuration path in.
 
-    :param string service_name:
-        The name of the service itself, typically 'master' or 'agent'.
+    :param string name:
+        The name of the configuration itself, typically 'master' or
+        'agent'.  This may also be the name of a package such
+        as 'pyfarm.agent'.  When the package name is provided
+        we can usually automatically determine the version
+        number.
 
     :param string version:
         The version the version of the program running.
@@ -353,15 +359,33 @@ class Configuration(dict):
     DEFAULT_PARENT_APPLICATION_NAME = "pyfarm"
     DEFAULT_ENVIRONMENT_PATH_VARIABLE = "PYFARM_CONFIG_ROOT"
 
-    def __init__(self, service_name, version):
+    def __init__(self, name, version=None):
         super(Configuration, self).__init__()
-        self.service_name = service_name
-        self.version = version
+
+        # If `name` is an import name and an
+        # explict version was not provided then try
+        # to find one automatically.
+        if version is None:
+            try:
+                self.distribution = get_distribution(name)
+
+            except DistributionNotFound:
+                raise ValueError(
+                    "%r is not a Python package so you must provide "
+                    "a version." % name)
+            else:
+                self.version = self.distribution.version
+                self.name = name.split(".")[-1]
+        else:
+            self.distribution = None
+            self.version = version
+            self.name = name
+
         self.file_extension = self.DEFAULT_FILE_EXTENSION
         self.system_root = self.DEFAULT_SYSTEM_ROOT
         self.user_root = self.DEFAULT_USER_ROOT
         self.child_dir = join(
-            self.DEFAULT_PARENT_APPLICATION_NAME, self.service_name)
+            self.DEFAULT_PARENT_APPLICATION_NAME, self.name)
         self.environment_root = read_env(
             self.DEFAULT_ENVIRONMENT_PATH_VARIABLE, None)
         self.local_dir = self.DEFAULT_LOCAL_DIRECTORY_NAME
@@ -371,7 +395,7 @@ class Configuration(dict):
         Splits ``self.version`` into a tuple of individual versions.  For
         example ``1.2.3`` would be split into ``['1', '1.2', '1.2.3']``
         """
-        if self.version is None:
+        if not self.version:
             return []
 
         split = self.version.split(sep)
@@ -427,7 +451,7 @@ class Configuration(dict):
             logger.error("No configuration directories found.")
             return []
 
-        filename = self.service_name + self.file_extension
+        filename = self.name + self.file_extension
         existing_files = []
 
         for directory in directories:
@@ -465,6 +489,10 @@ class Configuration(dict):
                 except yaml.YAMLError as e:  # pragma: no cover
                     logger.error("Failed to load %r: %s", filepath, e)
                     continue
+
+            # Empty file
+            if data is None:
+                continue
 
             if environment is not None and "env" in data:
                 config_environment = data.pop("env")

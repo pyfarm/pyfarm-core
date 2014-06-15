@@ -22,6 +22,8 @@ import uuid
 from textwrap import dedent
 from os.path import join, dirname, expandvars, expanduser
 
+from pkg_resources import get_distribution
+
 from pyfarm.core.enums import PY26, LINUX, MAC, WINDOWS
 from pyfarm.core.testutil import TestCase as BaseTestCase, requires_ci
 
@@ -177,12 +179,12 @@ class TestConfiguration(BaseTestCase):
     def test_instance_attributes(self):
         config = Configuration("agent", "1.2.3")
         self.assertIsNotNone(config.DEFAULT_SYSTEM_ROOT)
-        self.assertEqual(config.service_name, "agent")
+        self.assertEqual(config.name, "agent")
         self.assertEqual(config.version, "1.2.3")
         self.assertEqual(config.system_root, Configuration.DEFAULT_SYSTEM_ROOT)
         self.assertEqual(
             config.child_dir,
-            join(config.DEFAULT_PARENT_APPLICATION_NAME, config.service_name))
+            join(config.DEFAULT_PARENT_APPLICATION_NAME, config.name))
         self.assertEqual(config.DEFAULT_FILE_EXTENSION, config.file_extension)
         if config.DEFAULT_ENVIRONMENT_PATH_VARIABLE not in os.environ:
             self.assertIsNone(config.environment_root)
@@ -197,14 +199,14 @@ class TestConfiguration(BaseTestCase):
         self.assertEqual(config.split_version(), ["1", "1.2", "1.2.3"])
 
     def test_split_empty_version(self):
-        config = Configuration("agent", None)
+        config = Configuration("agent", "")
         self.assertEqual(config.split_version(), [])
 
     @requires_ci  # this test modifies the system and should not run elsewhere
     def test_files_system_root(self):
         config = Configuration("agent", "1.2.3")
         split = config.split_version()
-        filename = config.service_name + config.file_extension
+        filename = config.name + config.file_extension
         all_paths = [
             join(config.system_root, config.child_dir + os.sep, filename),
             join(config.system_root, config.child_dir, split[0], filename),
@@ -238,7 +240,7 @@ class TestConfiguration(BaseTestCase):
         config.system_root = local_root
         self.add_cleanup_path(local_root)
         split = config.split_version()
-        filename = config.service_name + config.file_extension
+        filename = config.name + config.file_extension
         paths = [
             join(config.system_root, config.child_dir + os.sep, filename),
             join(config.system_root, config.child_dir, split[2], filename)]
@@ -264,7 +266,7 @@ class TestConfiguration(BaseTestCase):
         config.system_root = local_root
         self.add_cleanup_path(local_root)
         split = config.split_version()
-        filename = config.service_name + config.file_extension
+        filename = config.name + config.file_extension
         paths = [
             join(config.system_root, config.child_dir + os.sep, filename),
             join(config.system_root, config.child_dir, split[2], filename)]
@@ -282,13 +284,36 @@ class TestConfiguration(BaseTestCase):
         config.load()
         self.assertEqual(config["value"], i)
 
+    def test_load_empty_file(self):
+        local_root = tempfile.mkdtemp()
+        config = Configuration("agent", "1.2.3")
+        config.system_root = local_root
+        self.add_cleanup_path(local_root)
+        split = config.split_version()
+        filename = config.name + config.file_extension
+        paths = [
+            join(config.system_root, config.child_dir + os.sep, filename),
+            join(config.system_root, config.child_dir, split[2], filename)]
+
+        for i, path in enumerate(paths):
+            try:
+                os.makedirs(dirname(path))
+            except OSError:
+                pass
+
+            with open(path, "w") as stream:
+                stream.write("")
+                self.add_cleanup_path(stream.name)
+
+        config.load()
+
     def test_load_environment(self):
         local_root = tempfile.mkdtemp()
         config = Configuration("agent", "1.2.3")
         config.system_root = local_root
         self.add_cleanup_path(local_root)
         split = config.split_version()
-        filename = config.service_name + config.file_extension
+        filename = config.name + config.file_extension
         paths = [
             join(config.system_root, config.child_dir + os.sep, filename),
             join(config.system_root, config.child_dir, split[2], filename)]
@@ -312,3 +337,14 @@ class TestConfiguration(BaseTestCase):
         environment = {}
         config.load(environment=environment)
         self.assertEqual(environment, {"key0": 0, "key1": 1, "key": 1})
+
+    def test_auto_version(self):
+        distro = get_distribution("pyfarm.core")
+        config = Configuration("pyfarm.core")
+        self.assertEqual(config.distribution, distro)
+        self.assertEqual(config.version, distro.version)
+        self.assertEqual(config.name, "core")
+
+    def test_auto_version_fail(self):
+        with self.assertRaises(ValueError):
+            Configuration("foobar")
