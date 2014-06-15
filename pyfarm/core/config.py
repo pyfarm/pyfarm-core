@@ -42,7 +42,8 @@ try:
 except ImportError:  # pragma: no cover
     from io import StringIO
 
-from pkg_resources import DistributionNotFound, get_distribution
+from pkg_resources import (
+    DistributionNotFound, get_distribution, resource_filename)
 
 import yaml
 try:
@@ -386,6 +387,19 @@ class Configuration(dict):
             else:
                 self.version = self.distribution.version
                 self.name = name.split(".")[-1]
+
+                # Try to locate the package's built-in configuration
+                # file.  This will be loaded before anything else
+                # to provide the default values.
+                try:
+                    self.package_configuration = resource_filename(
+                        name, join("etc", self.name + self.file_extension))
+                except ImportError:
+                    logger.warning(
+                        "Could not determine the default configuration file "
+                        "path for %s", self.name)
+                    self.package_configuration = None
+
         else:
             self.distribution = None
             self.version = version
