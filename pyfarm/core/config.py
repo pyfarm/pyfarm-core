@@ -362,6 +362,16 @@ class Configuration(dict):
     def __init__(self, name, version=None):
         super(Configuration, self).__init__()
 
+        self._name = name
+        self.loaded = ()
+        self.searched = []
+        self.file_extension = self.DEFAULT_FILE_EXTENSION
+        self.system_root = self.DEFAULT_SYSTEM_ROOT
+        self.user_root = self.DEFAULT_USER_ROOT
+        self.local_dir = self.DEFAULT_LOCAL_DIRECTORY_NAME
+        self.environment_root = read_env(
+            self.DEFAULT_ENVIRONMENT_PATH_VARIABLE, None)
+
         # If `name` is an import name and an
         # explict version was not provided then try
         # to find one automatically.
@@ -381,14 +391,8 @@ class Configuration(dict):
             self.version = version
             self.name = name
 
-        self.file_extension = self.DEFAULT_FILE_EXTENSION
-        self.system_root = self.DEFAULT_SYSTEM_ROOT
-        self.user_root = self.DEFAULT_USER_ROOT
         self.child_dir = join(
             self.DEFAULT_PARENT_APPLICATION_NAME, self.name)
-        self.environment_root = read_env(
-            self.DEFAULT_ENVIRONMENT_PATH_VARIABLE, None)
-        self.local_dir = self.DEFAULT_LOCAL_DIRECTORY_NAME
 
     def split_version(self, sep="."):
         """
