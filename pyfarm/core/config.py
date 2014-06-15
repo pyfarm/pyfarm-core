@@ -389,25 +389,25 @@ class Configuration(dict):
                 self.version = self.distribution.version
                 self.name = self._name.split(".")[-1]
 
-                # Try to locate the package's built-in configuration
-                # file.  This will be loaded before anything else
-                # to provide the default values.
-                try:
-                    self.package_configuration = resource_filename(
-                        name, join("etc", self.name + self.file_extension))
-                except ImportError:
-                    logger.warning(
-                        "Could not determine the default configuration file "
-                        "path for %s", self.name)
-                    self.package_configuration = None
-
         else:
             self.distribution = None
             self.version = version
             self.name = self._name
-            self.package_configuration = None
 
         self.child_dir = join(self.DEFAULT_PARENT_APPLICATION_NAME, self.name)
+
+        # Try to locate the package's built-in configuration
+        # file.  This will be loaded before anything else
+        # to provide the default values.
+        try:
+            self.package_configuration = resource_filename(
+                name,
+                join("etc", self._name.split(".")[-1] + self.file_extension))
+        except ImportError:
+            logger.warning(
+                "Could not determine the default configuration file "
+                "path for %s", self.name)
+            self.package_configuration = None
 
     def split_version(self, sep="."):
         """
