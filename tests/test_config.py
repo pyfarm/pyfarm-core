@@ -282,6 +282,29 @@ class TestConfiguration(BaseTestCase):
         config.load()
         self.assertEqual(config["value"], i)
 
+    def test_load_empty_file(self):
+        local_root = tempfile.mkdtemp()
+        config = Configuration("agent", "1.2.3")
+        config.system_root = local_root
+        self.add_cleanup_path(local_root)
+        split = config.split_version()
+        filename = config.service_name + config.file_extension
+        paths = [
+            join(config.system_root, config.child_dir + os.sep, filename),
+            join(config.system_root, config.child_dir, split[2], filename)]
+
+        for i, path in enumerate(paths):
+            try:
+                os.makedirs(dirname(path))
+            except OSError:
+                pass
+
+            with open(path, "w") as stream:
+                stream.write("")
+                self.add_cleanup_path(stream.name)
+
+        config.load()
+
     def test_load_environment(self):
         local_root = tempfile.mkdtemp()
         config = Configuration("agent", "1.2.3")

@@ -466,6 +466,10 @@ class Configuration(dict):
                     logger.error("Failed to load %r: %s", filepath, e)
                     continue
 
+            # Empty file
+            if data is None:
+                continue
+
             if environment is not None and "env" in data:
                 config_environment = data.pop("env")
                 assert isinstance(config_environment, dict)
