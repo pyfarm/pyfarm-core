@@ -500,9 +500,9 @@ class Configuration(dict):
             set to :var:`os.environ` so the environment itself could
             be updated.
         """
+        loaded = []
+        self.searched = []
         for filepath in self.files():
-            logger.debug("Reading %s", filepath)
-
             with open(filepath, "rb") as stream:
                 try:
                     data = yaml.load(stream, Loader=Loader)
@@ -511,8 +511,10 @@ class Configuration(dict):
                     logger.error("Failed to load %r: %s", filepath, e)
                     continue
 
+            loaded.append(filepath)
+
             # Empty file
-            if data is None:
+            if not data:
                 continue
 
             if environment is not None and "env" in data:
@@ -527,3 +529,15 @@ class Configuration(dict):
 
             # Update this instance with the loaded data
             self.update(data)
+
+        # Store loaded/searched for external use
+        self.loaded = tuple(loaded)
+        self.searched = tuple(self.searched)
+
+        if self.loaded:
+            logger.info(
+                "Loaded configuration file(s): %s", pformat(self.loaded))
+        else:
+            logger.warning(
+                "No configuration files were loaded after searching %s",
+                pformat(self.searched))
