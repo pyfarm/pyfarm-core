@@ -269,4 +269,7 @@ texinfo_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {"http://docs.python.org/": None}
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3.4", None),
+    "pyfarm.master": ("https://pyfarm-master.readthedocs.org/en/latest", None),
+    "pyfarm.agent": ("https://pyfarm-agent.readthedocs.org/en/latest", None)}
