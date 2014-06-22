@@ -9,8 +9,9 @@ Welcome to pyfarm.core's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 6
 
+    modules/pyfarm.core
 
 
 Indices and tables
