@@ -1,12 +1,15 @@
-.. pyfarm.core documentation master file, created by
-   sphinx-quickstart on Sun Jun 22 17:10:11 2014.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to pyfarm.core's documentation!
 =======================================
 
-Contents:
+This package contains some shared libraries and objects which other
+parts of PyFarm, such as :mod:`pyfarm.master` and :mod:`pyfarm.agent`,
+use directly.
+
+.. note::
+    While this code could be used directly, it's primarily intended to be
+    inside of other parts of PyFarm.
+
+**Contents**
 
 .. toctree::
     :maxdepth: 6
