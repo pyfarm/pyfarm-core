@@ -19,6 +19,7 @@ import sys
 from os.path import join, abspath, dirname
 
 ROOT = abspath(join(dirname(abspath(__file__)), "..", ".."))
+print(os.listdir(ROOT))
 print("================", ROOT)
 
 # If extensions (or modules to document with autodoc) are in another directory,
