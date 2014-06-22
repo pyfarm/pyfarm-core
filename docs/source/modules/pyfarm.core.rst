@@ -1,10 +1,6 @@
 pyfarm.core package
 ===================
 
-
-Module Contents
----------------
-
 .. automodule:: pyfarm.core
     :members:
     :undoc-members:
