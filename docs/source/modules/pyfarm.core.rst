@@ -1,11 +1,6 @@
 pyfarm.core package
 ===================
 
-.. automodule:: pyfarm.core
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Submodules
 ----------
 
@@ -17,3 +12,11 @@ Submodules
    pyfarm.core.logger
    pyfarm.core.testutil
    pyfarm.core.utility
+
+Module contents
+---------------
+
+.. automodule:: pyfarm.core
+    :members:
+    :undoc-members:
+    :show-inheritance:
