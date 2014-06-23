@@ -19,11 +19,14 @@ from __future__ import with_statement
 import sys
 assert sys.version_info[0:2] >= (2, 6), "Python 2.6 or higher is required"
 
+import os
 from os.path import isfile
 from setuptools import setup
 
 install_requires = ["colorama", "logutils", "PyYaml"]
 
+if "READTHEDOCS" in os.environ:
+    install_requires += ["nose"]
 
 if isfile("README.rst"):
     with open("README.rst", "r") as readme:
