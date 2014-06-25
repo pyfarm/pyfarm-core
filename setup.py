@@ -26,7 +26,7 @@ from setuptools import setup
 install_requires = ["colorama", "logutils", "PyYaml"]
 
 if "READTHEDOCS" in os.environ:
-    install_requires += ["nose"]
+    install_requires += ["nose", "sphinx"]
 
 if isfile("README.rst"):
     with open("README.rst", "r") as readme:
