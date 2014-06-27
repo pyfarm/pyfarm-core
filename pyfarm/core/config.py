@@ -265,7 +265,8 @@ class Configuration(dict):
 
         * ``/etc/pyfarm/agent/agent.yml``
 
-            ::
+            .. code-block:: yaml
+
                 env:
                     a: 0
                 foo: 1
@@ -274,7 +275,8 @@ class Configuration(dict):
 
         * ``etc/pyfarm/agent/1.2.3/agent.yml``
 
-            ::
+            .. code-block:: yaml
+
                 env:
                     a: 1
                     b: 1
@@ -285,12 +287,14 @@ class Configuration(dict):
     Configuration files are meant to store simple data and while it can be
     used to store more complicate data it won't merge any other data
     structures.
-            ::
-                env:
-                    a: 1
-                    b: 1
-                foo: 0
-                bar: true
+
+        .. code-block:: yaml
+
+            env:
+                a: 1
+                b: 1
+            foo: 0
+            bar: true
 
     :var string DEFAULT_SYSTEM_ROOT:
         The system level directory that we should look for configuration
@@ -492,12 +496,12 @@ class Configuration(dict):
         """
         Loads data from the configuration files.  Any data present
         in the ``env`` key in the configuration files will update
-        :arg:`environment`.
+        ``environment``
 
         :param dict environment:
             A dictionary to load data in the ``env`` key from
             the configuration files into.  This would typically be
-            set to :var:`os.environ` so the environment itself could
+            set to ``os.environ`` so the environment itself could
             be updated.
         """
         loaded = []
