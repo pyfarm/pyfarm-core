@@ -348,3 +348,32 @@ class TestConfiguration(BaseTestCase):
     def test_auto_version_fail(self):
         with self.assertRaises(ValueError):
             Configuration("foobar")
+
+    def test_tempdir(self):
+        config = Configuration("pyfarm.core")
+        self.assertEqual(
+            config.tempdir,
+            join(config.DEFAULT_TEMP_DIRECTORY_ROOT, config.name))
+
+    def test_expandvars_getitem(self):
+        key = uuid.uuid4().hex
+        config = Configuration("pyfarm.core")
+        config[key] = "$temp/bar"
+        self.assertEqual(config[key], config.tempdir + "/bar")
+
+    def test_expandvars_get(self):
+        key = uuid.uuid4().hex
+        config = Configuration("pyfarm.core")
+        config[key] = "$temp/bar"
+        self.assertEqual(config.get(key), config.tempdir + "/bar")
+
+    def test_get_default_behavior(self):
+        key = uuid.uuid4().hex
+        config = Configuration("pyfarm.core")
+        self.assertIsNone(config.get(key))
+
+    def test_getitem_default_behavior(self):
+        key = uuid.uuid4().hex
+        config = Configuration("pyfarm.core")
+        with self.assertRaises(KeyError):
+            config[key]

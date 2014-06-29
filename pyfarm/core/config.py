@@ -32,9 +32,11 @@ in various forms.
 
 import os
 from ast import literal_eval
+from errno import EEXIST
 from functools import partial
 from itertools import product
 from pprint import pformat
+from tempfile import gettempdir
 from os.path import isfile, join, isdir, expanduser, expandvars, dirname
 
 try:
@@ -336,6 +338,9 @@ class Configuration(dict):
     :var string DEFAULT_ENVIRONMENT_PATH_VARIABLE:
         A environment variable to search for a configuration path in.
 
+    :var DEFAULT_TEMP_DIRECTORY_ROOT:
+        The directory which will
+
     :param string name:
         The name of the configuration itself, typically 'master' or
         'agent'.  This may also be the name of a package such
@@ -364,6 +369,8 @@ class Configuration(dict):
     DEFAULT_LOCAL_DIRECTORY_NAME = "etc"
     DEFAULT_PARENT_APPLICATION_NAME = "pyfarm"
     DEFAULT_ENVIRONMENT_PATH_VARIABLE = "PYFARM_CONFIG_ROOT"
+    DEFAULT_TEMP_DIRECTORY_ROOT = join(
+        gettempdir(), DEFAULT_PARENT_APPLICATION_NAME)
 
     def __init__(self, name, version=None):
         super(Configuration, self).__init__()
@@ -399,6 +406,20 @@ class Configuration(dict):
             self.name = self._name
 
         self.child_dir = join(self.DEFAULT_PARENT_APPLICATION_NAME, self.name)
+        self.tempdir = join(self.DEFAULT_TEMP_DIRECTORY_ROOT, self.name)
+
+        # Create the base tempdir if it does not already
+        # exist.  We're handling the exception instead of
+        # using isdir() because it's possible multiple
+        # processes could try to create the directory and
+        # it's safer to let the file system handle it.
+        try:
+            os.makedirs(self.tempdir)
+        except OSError as e:
+            if e.errno != EEXIST:
+                raise
+        else:
+            logger.debug("Created %r", self.tempdir)
 
         # Try to locate the package's built-in configuration
         # file.  This will be loaded before anything else
@@ -545,3 +566,30 @@ class Configuration(dict):
             logger.warning(
                 "No configuration files were loaded after searching %s",
                 pformat(self.searched))
+
+    def _expandvars(self, value):
+        """
+        Performs variable expansion for ``value``.  The default implementation
+        only expands ``$temp`` into the application's temporary directory.
+        """
+        return value.replace("$temp", self.tempdir)
+
+    def get(self, key, default=None):
+        """
+        Overrides :meth:`dict.get` to provide internal variable
+        expansion through :meth:`_expandvars`.
+        """
+        value = super(Configuration, self).get(key, default)
+        if isinstance(value, STRING_TYPES):
+            value = self._expandvars(value)
+        return value
+
+    def __getitem__(self, item):
+        """
+        Overrides :meth:`dict.__getitem__` to provide internal variable
+        expansion through :meth:`_expandvars`.
+        """
+        value = super(Configuration, self).__getitem__(item)
+        if isinstance(value, STRING_TYPES):
+            value = self._expandvars(value)
+        return value
