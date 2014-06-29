@@ -579,7 +579,7 @@ class Configuration(dict):
         Overrides :meth:`dict.get` to provide internal variable
         expansion through :meth:`_expandvars`.
         """
-        value = super(Configuration, self).get(key, default=default)
+        value = super(Configuration, self).get(key, default)
         if isinstance(value, STRING_TYPES):
             value = self._expandvars(value)
         return value
