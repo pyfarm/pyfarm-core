@@ -36,6 +36,7 @@ from errno import EEXIST
 from functools import partial
 from itertools import product
 from pprint import pformat
+from string import Template
 from tempfile import gettempdir
 from os.path import isfile, join, isdir, expanduser, expandvars, dirname
 
@@ -55,7 +56,7 @@ except ImportError:  # pragma: no cover
 
 from pyfarm.core.logger import getLogger
 from pyfarm.core.enums import (
-    STRING_TYPES, NUMERIC_TYPES, NOTSET, LINUX, MAC, WINDOWS)
+    STRING_TYPES, NUMERIC_TYPES, NOTSET, LINUX, MAC, WINDOWS, range_)
 
 logger = getLogger("core.config")
 
@@ -350,7 +351,11 @@ class Configuration(dict):
 
     :param string version:
         The version the version of the program running.
+
+    .. automethod:: _expandvars
     """
+    MAX_EXPANSION_RECURSION = 10
+
     if LINUX:  # pragma: no cover
         DEFAULT_SYSTEM_ROOT = join(os.sep, "etc")
         DEFAULT_USER_ROOT = expanduser("~")
@@ -569,10 +574,57 @@ class Configuration(dict):
 
     def _expandvars(self, value):
         """
-        Performs variable expansion for ``value``.  The default implementation
-        only expands ``$temp`` into the application's temporary directory.
+        Performs variable expansion for ``value``. This method is run when
+        a string value is returned from :meth:`get` or :meth:`__getitem__`.
+        The default behavior of this method is to recursively expand
+        variables using sources in the following order:
+
+            * The environment, ``os.environ``
+            * The environment (from the configuration), ``env``
+            * Other values in the configuration
+            * ``~`` to the user's home directory
+
+        For example, the following configuration:
+
+        .. code-block:: yaml
+
+            foo: foo
+            bar: bar
+            foobar: $foo/$bar
+            path: ~/$foobar/$TEST
+
+        Would result in the following assuming ``$TEST`` is an
+        environment variable set to ``somevalue`` and the current
+        user's name is ``user``:
+
+        .. code-block:: python
+
+            {
+                "foo": "foo",
+                "bar": "bar",
+                "foobar": "foo/bar",
+                "path": "/home/user/foo/bar/somevalue"
+            }
         """
-        return value.replace("$temp", self.tempdir)
+        template_values = {"temp": self.tempdir}
+        template_values.update(os.environ)
+        template_values.update(self.get("env", {}))
+        template_values.update(**self)
+
+        # Do recursive variable expansion until we've either
+        # reached MAX_EXPANSION_RECURSION or the resulting
+        # value is unchanged
+        for _ in range_(self.MAX_EXPANSION_RECURSION):
+            template = Template(value)
+            expanded = expanduser(template.safe_substitute(**template_values))
+
+            # Nothing left to expand
+            if value == expanded:
+                break
+            else:
+                value = expanded
+
+        return value
 
     def get(self, key, default=None):
         """

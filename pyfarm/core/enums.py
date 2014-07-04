@@ -189,6 +189,11 @@ BOOLEAN_TRUE = set(["1", "t", "y", "true", "yes", True, 1])
 BOOLEAN_FALSE = set(["0", "f", "n", "false", "no", False, 0])
 NONE = set(["none", "null", "", None, 0])
 
+try:  # pragma: no cover
+    range_ = xrange
+except NameError:  # pragma: no cover
+    range_ = range
+
 
 def Enum(classname, **kwargs):
     """

@@ -355,18 +355,6 @@ class TestConfiguration(BaseTestCase):
             config.tempdir,
             join(config.DEFAULT_TEMP_DIRECTORY_ROOT, config.name))
 
-    def test_expandvars_getitem(self):
-        key = uuid.uuid4().hex
-        config = Configuration("pyfarm.core")
-        config[key] = "$temp/bar"
-        self.assertEqual(config[key], config.tempdir + "/bar")
-
-    def test_expandvars_get(self):
-        key = uuid.uuid4().hex
-        config = Configuration("pyfarm.core")
-        config[key] = "$temp/bar"
-        self.assertEqual(config.get(key), config.tempdir + "/bar")
-
     def test_get_default_behavior(self):
         key = uuid.uuid4().hex
         config = Configuration("pyfarm.core")
@@ -377,3 +365,35 @@ class TestConfiguration(BaseTestCase):
         config = Configuration("pyfarm.core")
         with self.assertRaises(KeyError):
             config[key]
+
+
+class TestConfigurationExpansion(BaseTestCase):
+    def test_temp_getitem(self):
+        key = uuid.uuid4().hex
+        config = Configuration("pyfarm.core")
+        config[key] = "$temp/bar"
+        self.assertEqual(config[key], config.tempdir + "/bar")
+
+    def test_temp_get(self):
+        key = uuid.uuid4().hex
+        config = Configuration("pyfarm.core")
+        config[key] = "$temp/bar"
+        self.assertEqual(config.get(key), config.tempdir + "/bar")
+
+    def test_recursive_expansion(self):
+        envvar1 = "a" + uuid.uuid4().hex
+        envvalue1 = "a" + uuid.uuid4().hex
+        envvar2 = "b" + uuid.uuid4().hex
+        envvalue2 = "b" + uuid.uuid4().hex
+        os.environ[envvar1] = envvalue1
+        os.environ[envvar2] = envvalue2
+        config = Configuration("pyfarm.core")
+        config.update(
+            foo="foo", bar="bar", foobar="$foo/$bar",
+            home="~/foo", path="$foobar/$%s" % envvar1,
+            envvar2_expand="$%s" % envvar2)
+        config.update({envvar2: "envvar2"})
+        self.assertEqual(config["foobar"], "foo/bar")
+        self.assertEqual(config["path"], "foo/bar/%s" % envvalue1)
+        self.assertEqual(config["home"], expanduser("~/foo"))
+        self.assertEqual(config["envvar2_expand"], "envvar2")
