@@ -23,7 +23,6 @@ PyFarm Core
     :target: https://coveralls.io/r/pyfarm/pyfarm-core?branch=master
     :align: left
 
-
 This sub-library contains core modules, classes, and data types which are
 used by other parts of the project.  Overall this library contains:
     * core exceptions and warnings
