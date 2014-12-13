@@ -474,7 +474,7 @@ class Configuration(dict):
 
         # If provided append a local directory
         if self.local_dir is not None:
-            roots.append(join(self.local_dir, "." + self.child_dir))
+            roots.append(join(self.local_dir, self.child_dir))
 
         all_directories = []
         existing_directories = []
