@@ -41,12 +41,6 @@ from tempfile import gettempdir
 from os.path import isfile, join, isdir, expanduser, expandvars, abspath
 
 try:
-    from itertools import imap as map_
-except ImportError:  # pragma: no cover
-    map_ = map
-
-
-try:
     from StringIO import StringIO
 except ImportError:  # pragma: no cover
     from io import StringIO
@@ -358,6 +352,11 @@ class Configuration(dict):
     :param string version:
         The version the version of the program running.
 
+    :param string cwd:
+        The current working directory to construct the local
+        path from.  If not provided then we'll use :func:`os.getcwd`
+        to determine the current working directory.
+
     .. automethod:: _expandvars
     """
     MAX_EXPANSION_RECURSION = 10
@@ -383,15 +382,16 @@ class Configuration(dict):
     DEFAULT_TEMP_DIRECTORY_ROOT = join(
         gettempdir(), DEFAULT_PARENT_APPLICATION_NAME)
 
-    def __init__(self, name, version=None):
+    def __init__(self, name, version=None, cwd=None):
         super(Configuration, self).__init__()
 
         self._name = name
         self.loaded = ()
+        self.cwd = os.getcwd() if cwd is None else cwd
         self.file_extension = self.DEFAULT_FILE_EXTENSION
         self.system_root = self.DEFAULT_SYSTEM_ROOT
         self.user_root = self.DEFAULT_USER_ROOT
-        self.local_dir = self.DEFAULT_LOCAL_DIRECTORY_NAME
+        self.local_dir = join(self.cwd, self.DEFAULT_LOCAL_DIRECTORY_NAME)
         self.environment_root = read_env(
             self.DEFAULT_ENVIRONMENT_PATH_VARIABLE, None)
 
@@ -525,7 +525,7 @@ class Configuration(dict):
                     "to find %r but this path does not exist.",
                     self._name, self.package_configuration)
 
-        for directory in map_(abspath, directories):
+        for directory in directories:
             filepath = join(directory, filename)
 
             if not validate or isfile(filepath):
