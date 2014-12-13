@@ -477,7 +477,7 @@ class Configuration(dict):
         return list(reversed([
             sep.join(split[:index]) for index, _ in enumerate(split, start=1)]))
 
-    def directories(self, validate=True):
+    def directories(self, validate=True, versioned=True):
         """
         Returns a list of platform dependent directories which may contain
         configuration files.
@@ -485,10 +485,17 @@ class Configuration(dict):
         :param bool validate:
             When ``True`` this method will only return directories
             which exist on disk.
+
+        :param bool versioned:
+            When ``True`` this method will only return versionless directories
+            instead of both versionless and versioned directories.
         """
         roots = []
-        versions = self.split_version()
-        versions.append("")  # the 'version free' directory
+        if versioned:
+            versions = self.split_version()
+            versions.append("")  # the 'version free' directory
+        else:
+            versions = [""]  # 'version free' directory only
 
         # If provided, append the root discovered in the environment
         if self.environment_root is not None:
@@ -518,7 +525,7 @@ class Configuration(dict):
 
         return existing_directories
 
-    def files(self, validate=True):
+    def files(self, validate=True, versioned=True):
         """
         Returns a list of configuration files.
 
@@ -531,8 +538,12 @@ class Configuration(dict):
                 This method calls :meth:`directories` and will
                 be passed the value that is provided to ``validate``
                 here.
+
+        :param bool versioned:
+            See the keyword documentation for ``versioned`` in
+            :meth:`directories``
         """
-        directories = self.directories(validate=validate)
+        directories = self.directories(validate=validate, versioned=versioned)
         filename = self.name + self.file_extension
         existing_files = []
 
