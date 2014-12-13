@@ -451,10 +451,14 @@ class Configuration(dict):
         return [
             sep.join(split[:index]) for index, _ in enumerate(split, start=1)]
 
-    def directories(self):
+    def directories(self, validate=True):
         """
         Returns a list of platform dependent directories which may contain
         configuration files.
+
+        :param bool validate:
+            When ``True`` this method will only return directories
+            which exist on disk.
         """
         roots = []
         versions = self.split_version()
@@ -484,14 +488,26 @@ class Configuration(dict):
             all_directories.append(directory)
             self.searched.append(directory)
 
-            if isdir(directory):
+            if not validate or isdir(directory):
                 existing_directories.append(directory)
 
         return existing_directories
 
-    def files(self):
-        """Returns a list of configuration files which currently exist."""
-        directories = self.directories()
+    def files(self, validate=True):
+        """
+        Returns a list of configuration files.
+
+        :param bool validate:
+            When ``True`` this method will only return files
+            which exist on disk.
+
+            .. note::
+
+                This method calls :meth:`directories` and will
+                be passed the value that is provided to ``validate``
+                here.
+        """
+        directories = self.directories(validate=validate)
         filename = self.name + self.file_extension
         existing_files = []
 
@@ -501,7 +517,7 @@ class Configuration(dict):
             if config_root not in self.searched:
                 self.searched.insert(0, dirname(self.package_configuration))
 
-            if isfile(self.package_configuration):
+            if not validate or isfile(self.package_configuration):
                 existing_files.append(self.package_configuration)
 
             else:
@@ -513,7 +529,7 @@ class Configuration(dict):
         for directory in directories:
             filepath = join(directory, filename)
 
-            if isfile(filepath):
+            if not validate or isfile(filepath):
                 existing_files.append(filepath)
 
         if not existing_files:  # pragma: no cover
