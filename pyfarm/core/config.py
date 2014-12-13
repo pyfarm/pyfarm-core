@@ -381,7 +381,7 @@ class Configuration(dict):
         super(Configuration, self).__init__()
 
         self._name = name
-        self.loaded = ()
+        self.loaded = []
         self.searched = []
         self.file_extension = self.DEFAULT_FILE_EXTENSION
         self.system_root = self.DEFAULT_SYSTEM_ROOT
@@ -496,9 +496,14 @@ class Configuration(dict):
         existing_files = []
 
         if self.package_configuration is not None:
-            self.searched.insert(0, dirname(self.package_configuration))
+            config_root = dirname(self.package_configuration)
+
+            if config_root not in self.searched:
+                self.searched.insert(0, dirname(self.package_configuration))
+
             if isfile(self.package_configuration):
                 existing_files.append(self.package_configuration)
+
             else:
                 logger.warning(
                     "%r does not have a default configuration file. Expected "
@@ -530,8 +535,6 @@ class Configuration(dict):
             set to ``os.environ`` so the environment itself could
             be updated.
         """
-        loaded = []
-        self.searched = []
         for filepath in self.files():
             with open(filepath, "rb") as stream:
                 try:
@@ -541,7 +544,8 @@ class Configuration(dict):
                     logger.error("Failed to load %r: %s", filepath, e)
                     continue
 
-            loaded.append(filepath)
+                else:
+                    self.loaded.append(filepath)
 
             # Empty file
             if not data:
@@ -559,10 +563,6 @@ class Configuration(dict):
 
             # Update this instance with the loaded data
             self.update(data)
-
-        # Store loaded/searched for external use
-        self.loaded = tuple(loaded)
-        self.searched = tuple(self.searched)
 
         if self.loaded:
             logger.info(
