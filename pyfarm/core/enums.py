@@ -34,6 +34,7 @@ Describes an operating system type.
     LINUX, operating system on agent is a Linux variant
     WINDOWS, operating system on agent is a Windows variant
     MAC, operating system on agent is an Apple OS variant
+    BSD, operating system on agent is a BSD variant
 
 
 Agent State
