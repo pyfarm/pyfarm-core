@@ -470,11 +470,11 @@ class Configuration(dict):
 
         # If provided append the user directory
         if self.user_root:  # could be empty in the environment
-            roots.append(join(self.user_root, self.child_dir))
+            roots.append(join(self.user_root, "." + self.child_dir))
 
         # If provided append a local directory
         if self.local_dir is not None:
-            roots.append(join(self.local_dir, self.child_dir))
+            roots.append(join(self.local_dir, "." + self.child_dir))
 
         all_directories = []
         existing_directories = []
