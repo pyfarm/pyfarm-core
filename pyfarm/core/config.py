@@ -381,8 +381,7 @@ class Configuration(dict):
         super(Configuration, self).__init__()
 
         self._name = name
-        self.loaded = []
-        self.searched = []
+        self.loaded = ()
         self.file_extension = self.DEFAULT_FILE_EXTENSION
         self.system_root = self.DEFAULT_SYSTEM_ROOT
         self.user_root = self.DEFAULT_USER_ROOT
@@ -486,7 +485,6 @@ class Configuration(dict):
         for root, tail in product(roots, versions):
             directory = join(root, tail)
             all_directories.append(directory)
-            self.searched.append(directory)
 
             if not validate or isdir(directory):
                 existing_directories.append(directory)
@@ -512,11 +510,6 @@ class Configuration(dict):
         existing_files = []
 
         if self.package_configuration is not None:
-            config_root = dirname(self.package_configuration)
-
-            if config_root not in self.searched:
-                self.searched.insert(0, dirname(self.package_configuration))
-
             if not validate or isfile(self.package_configuration):
                 existing_files.append(self.package_configuration)
 
@@ -551,6 +544,7 @@ class Configuration(dict):
             set to ``os.environ`` so the environment itself could
             be updated.
         """
+        loaded = []
         for filepath in self.files():
             with open(filepath, "rb") as stream:
                 try:
@@ -561,7 +555,7 @@ class Configuration(dict):
                     continue
 
                 else:
-                    self.loaded.append(filepath)
+                    loaded.append(filepath)
 
             # Empty file
             if not data:
@@ -580,13 +574,15 @@ class Configuration(dict):
             # Update this instance with the loaded data
             self.update(data)
 
-        if self.loaded:
+        if loaded:
+            self.loaded = tuple(loaded)
             logger.info(
-                "Loaded configuration file(s): %s", pformat(self.loaded))
+                "Loaded configuration file(s): %s", pformat(loaded))
         else:
+            self.loaded = ()
             logger.warning(
                 "No configuration files were loaded after searching %s",
-                pformat(self.searched))
+                pformat(self.files(validate=False)))
 
     def _expandvars(self, value):
         """
