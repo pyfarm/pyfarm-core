@@ -34,11 +34,17 @@ import os
 from ast import literal_eval
 from errno import EEXIST
 from functools import partial
-from itertools import product
 from pprint import pformat
 from string import Template
+from itertools import product
 from tempfile import gettempdir
-from os.path import isfile, join, isdir, expanduser, expandvars, dirname
+from os.path import isfile, join, isdir, expanduser, expandvars, abspath
+
+try:
+    from itertools import imap as map_
+except ImportError:  # pragma: no cover
+    map_ = map
+
 
 try:
     from StringIO import StringIO
@@ -519,7 +525,7 @@ class Configuration(dict):
                     "to find %r but this path does not exist.",
                     self._name, self.package_configuration)
 
-        for directory in directories:
+        for directory in map_(abspath, directories):
             filepath = join(directory, filename)
 
             if not validate or isfile(filepath):
@@ -545,6 +551,7 @@ class Configuration(dict):
             be updated.
         """
         loaded = []
+
         for filepath in self.files():
             with open(filepath, "rb") as stream:
                 try:
