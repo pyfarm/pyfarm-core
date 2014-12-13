@@ -25,12 +25,12 @@ else:
     from unittest import TestCase, skipUnless
 
 from pyfarm.core.enums import (
-    OS, WorkState, AgentState, OperatingSystem, UseAgentAddress,
+    WorkState, AgentState, OperatingSystem, UseAgentAddress,
     _WorkState, _AgentState, STRING_TYPES, NUMERIC_TYPES,
     PY2, PY3, PY27, PY_MAJOR, PY_MINOR, PY_VERSION,
     _OperatingSystem, _UseAgentAddress, DBUseAgentAddress,
     DBAgentState, DBOperatingSystem, DBWorkState, Enum,
-    Values, cast_enum, LINUX, MAC, WINDOWS, POSIX, BOOLEAN_TRUE, BOOLEAN_FALSE,
+    Values, cast_enum, LINUX, MAC, WINDOWS, BSD, BOOLEAN_TRUE, BOOLEAN_FALSE,
     INTEGER_TYPES)
 
 
@@ -146,6 +146,12 @@ class TestEnums(TestCase):
         self.assertEqual(
             OperatingSystem.MAC, "mac")
         self.assertEqual(
+            _OperatingSystem.BSD.int, 304)
+        self.assertEqual(
+            _OperatingSystem.BSD.str, "bsd")
+        self.assertEqual(
+            OperatingSystem.BSD, "bsd")
+        self.assertEqual(
             DBOperatingSystem.MAC, 302)
         self.assertEqual(
             _OperatingSystem.OTHER.int, 303)
@@ -200,6 +206,10 @@ class TestEnums(TestCase):
     @skipUnless(sys.platform.startswith("linux"), "Not Linux")
     def test_linux(self):
         self.assertTrue(LINUX)
+
+    @skipUnless("bsd" in sys.platform, "Not BSD")
+    def test_bsd(self):
+        self.assertTrue(BSD)
 
     def test_cast_enum(self):
         Values.check_uniqueness = False
