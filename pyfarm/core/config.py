@@ -244,21 +244,38 @@ class Configuration(dict):
     :class:`Configuration` class will populate itself with data loaded
     from the configuration files.  The configuration files themselves can
     be loaded from multiple location depending on the system's setup.  For
-    example on Linux you might end up attempting to load:
+    example on Linux you might end up attempting to load these files for
+    pyfarm.agent v1.2.3:
 
-        * The default configuration as provided by PyFarm's source.
-        * ``/etc/pyfarm/agent/agent.yml``
-        * ``/etc/pyfarm/agent/1/agent.yml``
-        * ``/etc/pyfarm/agent/1.2/agent.yml``
-        * ``/etc/pyfarm/agent/1.2.3/agent.yml``
-        * ``~/.pyfarm/agent/agent.yml``
-        * ``~/.pyfarm/agent/1/agent.yml``
-        * ``~/.pyfarm/agent/1.2/agent.yml``
-        * ``~/.pyfarm/agent/1.2.3/agent.yml``
-        * ``etc/pyfarm/agent/agent.yml``
-        * ``etc/pyfarm/agent/1/agent.yml``
-        * ``etc/pyfarm/agent/1.2/agent.yml``
+        Override paths set by ``DEFAULT_ENVIRONMENT_PATH_VARIABLE``.  By default
+        this path will not be set, this is only an example.
+        * ``/tmp/pyfarm/agent/1.2.3/agent.yml``
+        * ``/tmp/pyfarm/agent/1.2/agent.yml``
+        * ``/tmp/pyfarm/agent/1/agent.yml``
+        * ``/tmp/pyfarm/agent/agent.yml``
+
+        Paths relative to the current working directory or the directory
+        provided to ``cwd`` when :class:`Configuration` was instanced.
         * ``etc/pyfarm/agent/1.2.3/agent.yml``
+        * ``etc/pyfarm/agent/1.2/agent.yml``
+        * ``etc/pyfarm/agent/1/agent.yml``
+        * ``etc/pyfarm/agent/agent.yml``
+
+        User's home directory
+        * ``~/.pyfarm/agent/1.2.3/agent.yml``
+        * ``~/.pyfarm/agent/1.2/agent.yml``
+        * ``~/.pyfarm/agent/1/agent.yml``
+        * ``~/.pyfarm/agent/agent.yml``
+
+        System level paths
+        * ``/etc/pyfarm/agent/1.2.3/agent.yml``
+        * ``/etc/pyfarm/agent/1.2/agent.yml``
+        * ``/etc/pyfarm/agent/1/agent.yml``
+        * ``/etc/pyfarm/agent/agent.yml``
+
+        Finally, if we don't locate a configuration file in any of
+        the above paths we'll use the file which was installed along
+        side the source code.
 
     :class:`Configuration` will only attempt to load data from files which
     exist on the file system when :meth:`load` is called.  If multiple files
@@ -337,10 +354,14 @@ class Configuration(dict):
         child directories and will default to ``pyfarm``.
 
     :var string DEFAULT_ENVIRONMENT_PATH_VARIABLE:
-        A environment variable to search for a configuration path in.
+        A environment variable to search for a configuration path in.  The value
+        defined here, which defaults to ``PYFARM_CONFIG_ROOT``, will be
+        read from the environment when :class:`Configuration` is instanced.
+        This allows for an non-standard configuration location to be loaded
+        first for testing forced-override of the configuration.
 
     :var DEFAULT_TEMP_DIRECTORY_ROOT:
-        The directory which will
+        The directory which will store any temporary files.
 
     :param string name:
         The name of the configuration itself, typically 'master' or
@@ -453,8 +474,8 @@ class Configuration(dict):
             return []
 
         split = self.version.split(sep)
-        return [
-            sep.join(split[:index]) for index, _ in enumerate(split, start=1)]
+        return list(reversed([
+            sep.join(split[:index]) for index, _ in enumerate(split, start=1)]))
 
     def directories(self, validate=True):
         """
@@ -467,23 +488,23 @@ class Configuration(dict):
         """
         roots = []
         versions = self.split_version()
-        versions.insert(0, "")  # the 'version free' directory
-
-        # If provided, insert the default root
-        if self.system_root:  # could be empty in the environment
-            roots.append(join(self.system_root, self.child_dir))
+        versions.append("")  # the 'version free' directory
 
         # If provided, append the root discovered in the environment
         if self.environment_root is not None:
             roots.append(join(self.environment_root, self.child_dir))
 
-        # If provided append the user directory
-        if self.user_root:  # could be empty in the environment
-            roots.append(join(self.user_root, "." + self.child_dir))
-
         # If provided append a local directory
         if self.local_dir is not None:
             roots.append(join(self.local_dir, self.child_dir))
+
+        # If provided, append the user directory
+        if self.user_root:  # could be empty in the environment
+            roots.append(join(self.user_root, "." + self.child_dir))
+
+        # If provided, insert the default root
+        if self.system_root:  # could be empty in the environment
+            roots.append(join(self.system_root, self.child_dir))
 
         all_directories = []
         existing_directories = []
@@ -515,6 +536,12 @@ class Configuration(dict):
         filename = self.name + self.file_extension
         existing_files = []
 
+        for directory in directories:
+            filepath = join(directory, filename)
+
+            if not validate or isfile(filepath):
+                existing_files.append(filepath)
+
         if self.package_configuration is not None:
             if not validate or isfile(self.package_configuration):
                 existing_files.append(self.package_configuration)
@@ -524,12 +551,6 @@ class Configuration(dict):
                     "%r does not have a default configuration file. Expected "
                     "to find %r but this path does not exist.",
                     self._name, self.package_configuration)
-
-        for directory in directories:
-            filepath = join(directory, filename)
-
-            if not validate or isfile(filepath):
-                existing_files.append(filepath)
 
         if not existing_files:  # pragma: no cover
             logger.error(
