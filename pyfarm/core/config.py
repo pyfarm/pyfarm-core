@@ -490,7 +490,7 @@ class Configuration(dict):
         return existing_directories
 
     def files(self):
-        """Returns a list of configuration files."""
+        """Returns a list of configuration files which currently exist."""
         directories = self.directories()
         filename = self.name + self.file_extension
         existing_files = []
