@@ -477,7 +477,7 @@ class Configuration(dict):
         return list(reversed([
             sep.join(split[:index]) for index, _ in enumerate(split, start=1)]))
 
-    def directories(self, validate=True, versioned=True):
+    def directories(self, validate=True, unversioned_only=False):
         """
         Returns a list of platform dependent directories which may contain
         configuration files.
@@ -491,11 +491,12 @@ class Configuration(dict):
             instead of both versionless and versioned directories.
         """
         roots = []
-        if versioned:
-            versions = self.split_version()
-            versions.append("")  # the 'version free' directory
-        else:
-            versions = [""]  # 'version free' directory only
+        versions = []
+
+        if not unversioned_only:
+            versions.extend(self.split_version())
+
+        versions.append("")  # the 'version free' directory
 
         # If provided, append the root discovered in the environment
         if self.environment_root is not None:
