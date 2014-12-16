@@ -486,7 +486,7 @@ class Configuration(dict):
             When ``True`` this method will only return directories
             which exist on disk.
 
-        :param bool versioned:
+        :param bool unversioned_only:
             When ``True`` this method will only return versionless directories
             instead of both versionless and versioned directories.
         """
@@ -526,7 +526,7 @@ class Configuration(dict):
 
         return existing_directories
 
-    def files(self, validate=True, versioned=True):
+    def files(self, validate=True, unversioned_only=True):
         """
         Returns a list of configuration files.
 
@@ -540,11 +540,12 @@ class Configuration(dict):
                 be passed the value that is provided to ``validate``
                 here.
 
-        :param bool versioned:
-            See the keyword documentation for ``versioned`` in
+        :param bool unversioned_only:
+            See the keyword documentation for ``unversioned_only`` in
             :meth:`directories``
         """
-        directories = self.directories(validate=validate, versioned=versioned)
+        directories = self.directories(
+            validate=validate, unversioned_only=unversioned_only)
         filename = self.name + self.file_extension
         existing_files = []
 
