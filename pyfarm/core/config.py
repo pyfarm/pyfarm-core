@@ -526,7 +526,7 @@ class Configuration(dict):
 
         return existing_directories
 
-    def files(self, validate=True, unversioned_only=True):
+    def files(self, validate=True, unversioned_only=False):
         """
         Returns a list of configuration files.
 
