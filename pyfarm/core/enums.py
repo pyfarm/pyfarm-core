@@ -34,6 +34,7 @@ Describes an operating system type.
     LINUX, operating system on agent is a Linux variant
     WINDOWS, operating system on agent is a Windows variant
     MAC, operating system on agent is an Apple OS variant
+    BSD, operating system on agent is a BSD variant
 
 
 Agent State
@@ -393,6 +394,7 @@ _OperatingSystem = Enum(
     LINUX=Values(300, "linux"),
     WINDOWS=Values(301, "windows"),
     MAC=Values(302, "mac"),
+    BSD=Values(304, "bsd"),
     OTHER=Values(303, "other"))
 
 # NOTE: these values are directly tested test_enums.test_direct_agent_addr
@@ -441,6 +443,8 @@ def operating_system(plat=sys.platform):
         return "windows"
     elif plat.startswith("darwin"):
         return "mac"
+    elif "bsd" in plat:
+        return "bsd"
     else:
         return "other"
 
@@ -452,3 +456,4 @@ POSIX = OS in (OperatingSystem.LINUX, OperatingSystem.MAC)
 WINDOWS = OS == OperatingSystem.WINDOWS
 LINUX = OS == OperatingSystem.LINUX
 MAC = OS == OperatingSystem.MAC
+BSD = OS == OperatingSystem.BSD
