@@ -34,11 +34,11 @@ import os
 from ast import literal_eval
 from errno import EEXIST
 from functools import partial
-from itertools import product
 from pprint import pformat
 from string import Template
+from itertools import product
 from tempfile import gettempdir
-from os.path import isfile, join, isdir, expanduser, expandvars, dirname
+from os.path import isfile, join, isdir, expanduser, expandvars, abspath
 
 try:
     from StringIO import StringIO
@@ -244,21 +244,38 @@ class Configuration(dict):
     :class:`Configuration` class will populate itself with data loaded
     from the configuration files.  The configuration files themselves can
     be loaded from multiple location depending on the system's setup.  For
-    example on Linux you might end up attempting to load:
+    example on Linux you might end up attempting to load these files for
+    pyfarm.agent v1.2.3:
 
-        * The default configuration as provided by PyFarm's source.
-        * ``/etc/pyfarm/agent/agent.yml``
-        * ``/etc/pyfarm/agent/1/agent.yml``
-        * ``/etc/pyfarm/agent/1.2/agent.yml``
-        * ``/etc/pyfarm/agent/1.2.3/agent.yml``
-        * ``~/.pyfarm/agent/agent.yml``
-        * ``~/.pyfarm/agent/1/agent.yml``
-        * ``~/.pyfarm/agent/1.2/agent.yml``
-        * ``~/.pyfarm/agent/1.2.3/agent.yml``
-        * ``etc/pyfarm/agent/agent.yml``
-        * ``etc/pyfarm/agent/1/agent.yml``
-        * ``etc/pyfarm/agent/1.2/agent.yml``
+        Override paths set by ``DEFAULT_ENVIRONMENT_PATH_VARIABLE``.  By default
+        this path will not be set, this is only an example.
+        * ``/tmp/pyfarm/agent/1.2.3/agent.yml``
+        * ``/tmp/pyfarm/agent/1.2/agent.yml``
+        * ``/tmp/pyfarm/agent/1/agent.yml``
+        * ``/tmp/pyfarm/agent/agent.yml``
+
+        Paths relative to the current working directory or the directory
+        provided to ``cwd`` when :class:`Configuration` was instanced.
         * ``etc/pyfarm/agent/1.2.3/agent.yml``
+        * ``etc/pyfarm/agent/1.2/agent.yml``
+        * ``etc/pyfarm/agent/1/agent.yml``
+        * ``etc/pyfarm/agent/agent.yml``
+
+        User's home directory
+        * ``~/.pyfarm/agent/1.2.3/agent.yml``
+        * ``~/.pyfarm/agent/1.2/agent.yml``
+        * ``~/.pyfarm/agent/1/agent.yml``
+        * ``~/.pyfarm/agent/agent.yml``
+
+        System level paths
+        * ``/etc/pyfarm/agent/1.2.3/agent.yml``
+        * ``/etc/pyfarm/agent/1.2/agent.yml``
+        * ``/etc/pyfarm/agent/1/agent.yml``
+        * ``/etc/pyfarm/agent/agent.yml``
+
+        Finally, if we don't locate a configuration file in any of
+        the above paths we'll use the file which was installed along
+        side the source code.
 
     :class:`Configuration` will only attempt to load data from files which
     exist on the file system when :meth:`load` is called.  If multiple files
@@ -337,10 +354,14 @@ class Configuration(dict):
         child directories and will default to ``pyfarm``.
 
     :var string DEFAULT_ENVIRONMENT_PATH_VARIABLE:
-        A environment variable to search for a configuration path in.
+        A environment variable to search for a configuration path in.  The value
+        defined here, which defaults to ``PYFARM_CONFIG_ROOT``, will be
+        read from the environment when :class:`Configuration` is instanced.
+        This allows for an non-standard configuration location to be loaded
+        first for testing forced-override of the configuration.
 
     :var DEFAULT_TEMP_DIRECTORY_ROOT:
-        The directory which will
+        The directory which will store any temporary files.
 
     :param string name:
         The name of the configuration itself, typically 'master' or
@@ -351,6 +372,11 @@ class Configuration(dict):
 
     :param string version:
         The version the version of the program running.
+
+    :param string cwd:
+        The current working directory to construct the local
+        path from.  If not provided then we'll use :func:`os.getcwd`
+        to determine the current working directory.
 
     .. automethod:: _expandvars
     """
@@ -377,16 +403,16 @@ class Configuration(dict):
     DEFAULT_TEMP_DIRECTORY_ROOT = join(
         gettempdir(), DEFAULT_PARENT_APPLICATION_NAME)
 
-    def __init__(self, name, version=None):
+    def __init__(self, name, version=None, cwd=None):
         super(Configuration, self).__init__()
 
         self._name = name
         self.loaded = ()
-        self.searched = []
+        self.cwd = os.getcwd() if cwd is None else cwd
         self.file_extension = self.DEFAULT_FILE_EXTENSION
         self.system_root = self.DEFAULT_SYSTEM_ROOT
         self.user_root = self.DEFAULT_USER_ROOT
-        self.local_dir = self.DEFAULT_LOCAL_DIRECTORY_NAME
+        self.local_dir = join(self.cwd, self.DEFAULT_LOCAL_DIRECTORY_NAME)
         self.environment_root = read_env(
             self.DEFAULT_ENVIRONMENT_PATH_VARIABLE, None)
 
@@ -448,33 +474,45 @@ class Configuration(dict):
             return []
 
         split = self.version.split(sep)
-        return [
-            sep.join(split[:index]) for index, _ in enumerate(split, start=1)]
+        return list(reversed([
+            sep.join(split[:index]) for index, _ in enumerate(split, start=1)]))
 
-    def directories(self):
+    def directories(self, validate=True, unversioned_only=False):
         """
         Returns a list of platform dependent directories which may contain
         configuration files.
+
+        :param bool validate:
+            When ``True`` this method will only return directories
+            which exist on disk.
+
+        :param bool unversioned_only:
+            When ``True`` this method will only return versionless directories
+            instead of both versionless and versioned directories.
         """
         roots = []
-        versions = self.split_version()
-        versions.insert(0, "")  # the 'version free' directory
+        versions = []
 
-        # If provided, insert the default root
-        if self.system_root:  # could be empty in the environment
-            roots.append(join(self.system_root, self.child_dir))
+        if not unversioned_only:
+            versions.extend(self.split_version())
+
+        versions.append("")  # the 'version free' directory
 
         # If provided, append the root discovered in the environment
         if self.environment_root is not None:
             roots.append(join(self.environment_root, self.child_dir))
 
-        # If provided append the user directory
-        if self.user_root:  # could be empty in the environment
-            roots.append(join(self.user_root, self.child_dir))
-
         # If provided append a local directory
         if self.local_dir is not None:
             roots.append(join(self.local_dir, self.child_dir))
+
+        # If provided, append the user directory
+        if self.user_root:  # could be empty in the environment
+            roots.append(join(self.user_root, "." + self.child_dir))
+
+        # If provided, insert the default root
+        if self.system_root:  # could be empty in the environment
+            roots.append(join(self.system_root, self.child_dir))
 
         all_directories = []
         existing_directories = []
@@ -482,34 +520,50 @@ class Configuration(dict):
         for root, tail in product(roots, versions):
             directory = join(root, tail)
             all_directories.append(directory)
-            self.searched.append(directory)
 
-            if isdir(directory):
+            if not validate or isdir(directory):
                 existing_directories.append(directory)
 
         return existing_directories
 
-    def files(self):
-        """Returns a list of configuration files."""
-        directories = self.directories()
+    def files(self, validate=True, unversioned_only=False):
+        """
+        Returns a list of configuration files.
+
+        :param bool validate:
+            When ``True`` this method will only return files
+            which exist on disk.
+
+            .. note::
+
+                This method calls :meth:`directories` and will
+                be passed the value that is provided to ``validate``
+                here.
+
+        :param bool unversioned_only:
+            See the keyword documentation for ``unversioned_only`` in
+            :meth:`directories``
+        """
+        directories = self.directories(
+            validate=validate, unversioned_only=unversioned_only)
         filename = self.name + self.file_extension
         existing_files = []
 
+        for directory in directories:
+            filepath = join(directory, filename)
+
+            if not validate or isfile(filepath):
+                existing_files.append(filepath)
+
         if self.package_configuration is not None:
-            self.searched.insert(0, dirname(self.package_configuration))
-            if isfile(self.package_configuration):
+            if not validate or isfile(self.package_configuration):
                 existing_files.append(self.package_configuration)
+
             else:
                 logger.warning(
                     "%r does not have a default configuration file. Expected "
                     "to find %r but this path does not exist.",
                     self._name, self.package_configuration)
-
-        for directory in directories:
-            filepath = join(directory, filename)
-
-            if isfile(filepath):
-                existing_files.append(filepath)
 
         if not existing_files:  # pragma: no cover
             logger.error(
@@ -531,7 +585,7 @@ class Configuration(dict):
             be updated.
         """
         loaded = []
-        self.searched = []
+
         for filepath in self.files():
             with open(filepath, "rb") as stream:
                 try:
@@ -541,7 +595,8 @@ class Configuration(dict):
                     logger.error("Failed to load %r: %s", filepath, e)
                     continue
 
-            loaded.append(filepath)
+                else:
+                    loaded.append(filepath)
 
             # Empty file
             if not data:
@@ -560,17 +615,15 @@ class Configuration(dict):
             # Update this instance with the loaded data
             self.update(data)
 
-        # Store loaded/searched for external use
-        self.loaded = tuple(loaded)
-        self.searched = tuple(self.searched)
-
-        if self.loaded:
+        if loaded:
+            self.loaded = tuple(loaded)
             logger.info(
-                "Loaded configuration file(s): %s", pformat(self.loaded))
+                "Loaded configuration file(s): %s", pformat(loaded))
         else:
+            self.loaded = ()
             logger.warning(
                 "No configuration files were loaded after searching %s",
-                pformat(self.searched))
+                pformat(self.files(validate=False)))
 
     def _expandvars(self, value):
         """

@@ -191,48 +191,46 @@ class TestConfiguration(BaseTestCase):
         else:
             self.assertEqual(
                 config.environment_root,
-                os.environ[config.DEFAULT_ENVIRONMENT_PATH_VARIABLE])
-        self.assertEqual(config.local_dir, config.DEFAULT_LOCAL_DIRECTORY_NAME)
+                join(config.cwd,
+                     os.environ[config.DEFAULT_ENVIRONMENT_PATH_VARIABLE]))
+        self.assertEqual(
+            config.local_dir,
+            join(config.cwd, config.DEFAULT_LOCAL_DIRECTORY_NAME))
 
     def test_split_version(self):
         config = Configuration("agent", "1.2.3")
-        self.assertEqual(config.split_version(), ["1", "1.2", "1.2.3"])
+        self.assertEqual(config.split_version(), ["1.2.3", "1.2", "1"])
 
     def test_split_empty_version(self):
         config = Configuration("agent", "")
         self.assertEqual(config.split_version(), [])
 
-    @requires_ci  # this test modifies the system and should not run elsewhere
     def test_files_system_root(self):
+        os.environ[Configuration.DEFAULT_ENVIRONMENT_PATH_VARIABLE] \
+            = tempfile.mkdtemp()
         config = Configuration("agent", "1.2.3")
+        os.environ.pop(Configuration.DEFAULT_ENVIRONMENT_PATH_VARIABLE)
         split = config.split_version()
         filename = config.name + config.file_extension
         all_paths = [
-            join(config.system_root, config.child_dir + os.sep, filename),
+            join(config.environment_root, config.child_dir, split[0], filename),
+            join(config.environment_root, config.child_dir, split[1], filename),
+            join(config.environment_root, config.child_dir, split[2], filename),
+            join(config.environment_root, config.child_dir + os.sep, filename),
+            join(config.local_dir, config.child_dir, split[0], filename),
+            join(config.local_dir, config.child_dir, split[1], filename),
+            join(config.local_dir, config.child_dir, split[2], filename),
+            join(config.local_dir, config.child_dir + os.sep, filename),
+            join(config.user_root, "." + config.child_dir, split[0], filename),
+            join(config.user_root, "." + config.child_dir, split[1], filename),
+            join(config.user_root, "." + config.child_dir, split[2], filename),
+            join(config.user_root, "." + config.child_dir + os.sep, filename),
             join(config.system_root, config.child_dir, split[0], filename),
             join(config.system_root, config.child_dir, split[1], filename),
             join(config.system_root, config.child_dir, split[2], filename),
-            join(config.user_root, config.child_dir + os.sep, filename),
-            join(config.user_root, config.child_dir, split[0], filename),
-            join(config.user_root, config.child_dir, split[1], filename),
-            join(config.user_root, config.child_dir, split[2], filename),
-            join(config.local_dir, config.child_dir + os.sep, filename),
-            join(config.local_dir, config.child_dir, split[0], filename),
-            join(config.local_dir, config.child_dir, split[1], filename),
-            join(config.local_dir, config.child_dir, split[2], filename)]
-
-        for path in all_paths:
-            parent_dir = dirname(path)
-
-            try:
-                os.makedirs(parent_dir)
-            except (OSError, IOError):
-                pass
-
-            with open(path, "wb"):
-                pass
-
-        self.assertEqual(config.files(), all_paths)
+            join(config.system_root, config.child_dir + os.sep, filename),
+        ]
+        self.assertEqual(config.files(validate=False), all_paths)
 
     def test_files_filtered_with_files(self):
         local_root = tempfile.mkdtemp()
@@ -242,8 +240,9 @@ class TestConfiguration(BaseTestCase):
         split = config.split_version()
         filename = config.name + config.file_extension
         paths = [
-            join(config.system_root, config.child_dir + os.sep, filename),
-            join(config.system_root, config.child_dir, split[2], filename)]
+            join(config.system_root, config.child_dir, split[2], filename),
+            join(config.system_root, config.child_dir + os.sep, filename)
+        ]
 
         for path in paths:
             try:
@@ -268,8 +267,9 @@ class TestConfiguration(BaseTestCase):
         split = config.split_version()
         filename = config.name + config.file_extension
         paths = [
-            join(config.system_root, config.child_dir + os.sep, filename),
-            join(config.system_root, config.child_dir, split[2], filename)]
+            join(config.system_root, config.child_dir, split[2], filename),
+            join(config.system_root, config.child_dir + os.sep, filename)
+        ]
 
         for i, path in enumerate(paths):
             try:
@@ -315,8 +315,8 @@ class TestConfiguration(BaseTestCase):
         split = config.split_version()
         filename = config.name + config.file_extension
         paths = [
-            join(config.system_root, config.child_dir + os.sep, filename),
-            join(config.system_root, config.child_dir, split[2], filename)]
+            join(config.system_root, config.child_dir, split[2], filename),
+            join(config.system_root, config.child_dir + os.sep, filename)]
 
         for i, path in enumerate(paths):
             try:
