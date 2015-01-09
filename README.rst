@@ -15,26 +15,35 @@
 PyFarm Core
 ===========
 
-.. image:: https://travis-ci.org/pyfarm/pyfarm-core.png?branch=master
+.. image:: https://travis-ci.org/pyfarm/pyfarm-core.svg?branch=master
     :target: https://travis-ci.org/pyfarm/pyfarm-core
-    :align: left
+    :alt: build status (master)
 
-.. image:: https://coveralls.io/repos/pyfarm/pyfarm-core/badge.png?branch=master
+.. image:: https://coveralls.io/repos/pyfarm/pyfarm-core/badge?branch=master
     :target: https://coveralls.io/r/pyfarm/pyfarm-core?branch=master
-    :align: left
+    :alt: coverage
 
-This sub-library contains core modules, classes, and data types which are
-used by other parts of the project.  Overall this library contains:
-    * core exceptions and warnings
-    * system information submodule
-    * file operations wrappers and classes
-    * base command line wrapper
-    * other general utilities
+This library contains core modules, classes, and data types which are
+used by other parts of the PyFarm project.  This package is contains:
+
+    * A configuration module for loading and merging configuration
+      files from disk.
+    * Enumerations of basic system information such as interpreter information,
+      Python types, operating systems and other basic information that can
+      be shared across the project.
+    * Logger setup and handling
+    * Miscellaneous utilities
 
 
-Installation Note
------------------
-The installation of this module does not ensure all its dependencies are met.
-As an example sqlalchemy is required for part of the ``core.config`` module
-however that specific module is only required for the admin interface and
-master.
+Testing
+-------
+
+Test are run on `Travis <https://travis-ci.org/pyfarm/pyfarm-core>`_ for
+every commit.  They can also be run locally too (setup may vary depending
+on platform)::
+
+    virtualenv env
+    . env/bin/activate
+    pip install nose coverage
+    pip install -e . --egg
+    nosetests tests/
