@@ -34,6 +34,14 @@ used by other parts of the PyFarm project.  This package is contains:
     * Logger setup and handling
     * Miscellaneous utilities
 
+Python Version Support
+----------------------
+
+This library supports Python 2.6+ and 3.2+ in one code base.  Python 2.5
+and lower is not supported due to significant syntax, library and other
+differences.  This library must support the range of Python versions
+that ``python.master`` and ``pyfarm.agent`` supports.
+
 
 Documentation
 -------------
