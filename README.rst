@@ -44,6 +44,6 @@ on platform)::
 
     virtualenv env
     . env/bin/activate
-    pip install nose coverage
+    pip install nose
     pip install -e . --egg
     nosetests tests/
