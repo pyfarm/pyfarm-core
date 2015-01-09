@@ -35,6 +35,22 @@ used by other parts of the PyFarm project.  This package is contains:
     * Miscellaneous utilities
 
 
+Documentation
+-------------
+
+The documentation for this this library is hosted on
+`Read The Docs <https://pyfarm.readthedocs.org/projects/pyfarm-core/en/latest/>`_.
+It's generated directly from this library using sphinx (setup may vary depending
+on platform)::
+
+    virtualenv env
+    . env/bin/activate
+    pip install sphinx nose
+    pip install -e . --egg
+    make -C docs html
+
+
+
 Testing
 -------
 
