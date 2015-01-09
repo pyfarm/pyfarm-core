@@ -498,21 +498,24 @@ class Configuration(dict):
 
         versions.append("")  # the 'version free' directory
 
-        # If provided, append the root discovered in the environment
-        if self.environment_root is not None:
-            roots.append(join(self.environment_root, self.child_dir))
+        # If provided, insert the default root
+        if self.system_root:  # could be empty in the environment
+            roots.append(join(self.system_root, self.child_dir))
+
+        # If provided, append the user directory
+        if self.user_root:  # could be empty in the environment
+            if not WINDOWS:
+                roots.append(join(self.user_root, "." + self.child_dir))
+            else:
+                roots.append(join(self.user_root, self.child_dir))
 
         # If provided append a local directory
         if self.local_dir is not None:
             roots.append(join(self.local_dir, self.child_dir))
 
-        # If provided, append the user directory
-        if self.user_root:  # could be empty in the environment
-            roots.append(join(self.user_root, "." + self.child_dir))
-
-        # If provided, insert the default root
-        if self.system_root:  # could be empty in the environment
-            roots.append(join(self.system_root, self.child_dir))
+        # If provided, append the root discovered in the environment
+        if self.environment_root is not None:
+            roots.append(join(self.environment_root, self.child_dir))
 
         all_directories = []
         existing_directories = []
@@ -549,12 +552,6 @@ class Configuration(dict):
         filename = self.name + self.file_extension
         existing_files = []
 
-        for directory in directories:
-            filepath = join(directory, filename)
-
-            if not validate or isfile(filepath):
-                existing_files.append(filepath)
-
         if self.package_configuration is not None:
             if not validate or isfile(self.package_configuration):
                 existing_files.append(self.package_configuration)
@@ -564,6 +561,12 @@ class Configuration(dict):
                     "%r does not have a default configuration file. Expected "
                     "to find %r but this path does not exist.",
                     self._name, self.package_configuration)
+
+        for directory in directories:
+            filepath = join(directory, filename)
+
+            if not validate or isfile(filepath):
+                existing_files.append(filepath)
 
         if not existing_files:  # pragma: no cover
             logger.error(

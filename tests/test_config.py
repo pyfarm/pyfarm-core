@@ -213,22 +213,22 @@ class TestConfiguration(BaseTestCase):
         split = config.split_version()
         filename = config.name + config.file_extension
         all_paths = [
-            join(config.environment_root, config.child_dir, split[0], filename),
-            join(config.environment_root, config.child_dir, split[1], filename),
-            join(config.environment_root, config.child_dir, split[2], filename),
-            join(config.environment_root, config.child_dir + os.sep, filename),
-            join(config.local_dir, config.child_dir, split[0], filename),
-            join(config.local_dir, config.child_dir, split[1], filename),
-            join(config.local_dir, config.child_dir, split[2], filename),
-            join(config.local_dir, config.child_dir + os.sep, filename),
-            join(config.user_root, "." + config.child_dir, split[0], filename),
-            join(config.user_root, "." + config.child_dir, split[1], filename),
-            join(config.user_root, "." + config.child_dir, split[2], filename),
-            join(config.user_root, "." + config.child_dir + os.sep, filename),
             join(config.system_root, config.child_dir, split[0], filename),
             join(config.system_root, config.child_dir, split[1], filename),
             join(config.system_root, config.child_dir, split[2], filename),
             join(config.system_root, config.child_dir + os.sep, filename),
+            join(config.user_root, "." + config.child_dir, split[0], filename),
+            join(config.user_root, "." + config.child_dir, split[1], filename),
+            join(config.user_root, "." + config.child_dir, split[2], filename),
+            join(config.user_root, "." + config.child_dir + os.sep, filename),
+            join(config.local_dir, config.child_dir, split[0], filename),
+            join(config.local_dir, config.child_dir, split[1], filename),
+            join(config.local_dir, config.child_dir, split[2], filename),
+            join(config.local_dir, config.child_dir + os.sep, filename),
+            join(config.environment_root, config.child_dir, split[0], filename),
+            join(config.environment_root, config.child_dir, split[1], filename),
+            join(config.environment_root, config.child_dir, split[2], filename),
+            join(config.environment_root, config.child_dir + os.sep, filename),
         ]
         self.assertEqual(config.files(validate=False), all_paths)
 
