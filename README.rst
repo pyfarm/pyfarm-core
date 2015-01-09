@@ -38,7 +38,7 @@ used by other parts of the PyFarm project.  This package is contains:
 Testing
 -------
 
-Test are run on `Travis <https://travis-ci.org/pyfarm/pyfarm-core>`_ for
+Tests are run on `Travis <https://travis-ci.org/pyfarm/pyfarm-core>`_ for
 every commit.  They can also be run locally too (setup may vary depending
 on platform)::
 
