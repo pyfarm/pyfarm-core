@@ -215,7 +215,7 @@ def read_env_strict_number(*args, **kwargs):
     :keyword number_type:
         the type of number(s) this function must return
 
-    :exception AsssertionError:
+    :exception AssertionError:
         raised if the number_type keyword is not provided (required to check
         the type on output)
 
