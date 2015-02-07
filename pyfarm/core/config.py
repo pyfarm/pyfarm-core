@@ -67,7 +67,8 @@ BOOLEAN_FALSE = set(["0", "f", "n", "false", "no"])
 
 
 def read_env(envvar, default=NOTSET, warn_if_unset=False, eval_literal=False,
-             raise_eval_exception=True, log_result=True, desc=None):
+             raise_eval_exception=True, log_result=True, desc=None,
+             log_defaults=False):
     """
     Lookup and evaluate an environment variable.
 
@@ -100,10 +101,11 @@ def read_env(envvar, default=NOTSET, warn_if_unset=False, eval_literal=False,
     :keyword string desc:
         Describes the purpose of the value being returned.  This may also
         be read in at the time the documentation is built.
-    """
-    if not log_result:  # pragma: no cover
-        logger.debug("read_env(%s)" % repr(envvar))
 
+    :keyword bool log_defaults:
+        If False, queries for envvars that have not actually been set and will
+        just return ``default`` will not be logged
+    """
     if envvar not in os.environ:
         # default not provided, raise an exception
         if default is NOTSET:
@@ -112,12 +114,21 @@ def read_env(envvar, default=NOTSET, warn_if_unset=False, eval_literal=False,
         if warn_if_unset:  # pragma: no cover
             logger.warning("$%s is using a default value" % envvar)
 
-        if log_result:  # pragma: no cover
-            logger.info("read_env(%s): %s" % (repr(envvar), repr(default)))
+        if log_defaults:
+            if log_result:  # pragma: no cover
+                logger.debug("read_env(%s): %s", (repr(envvar), repr(default)))
+            else:
+                logger.debug("read_env(%r) (value suppressed)", envvar)
 
         return default
     else:
         value = os.environ[envvar]
+
+        if log_result:  # pragma: no cover
+           logger.info("read_env(%r): %r", envvar, value)
+        else:
+           logger.debug("read_env(%r) (value suppressed)", envvar)
+
 
         if not eval_literal:
             return value
