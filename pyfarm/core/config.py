@@ -440,12 +440,12 @@ class Configuration(dict):
                     "a version." % self._name)
             else:
                 self.version = self.distribution.version
-                self.name = self._name.split(".")[-1]
 
         else:
             self.distribution = None
             self.version = version
-            self.name = self._name
+
+        self.name = self._name.split(".")[-1]
 
         self.child_dir = join(self.DEFAULT_PARENT_APPLICATION_NAME, self.name)
         self.tempdir = join(self.DEFAULT_TEMP_DIRECTORY_ROOT, self.name)
