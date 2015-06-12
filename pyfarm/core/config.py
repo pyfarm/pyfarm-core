@@ -260,6 +260,7 @@ class Configuration(dict):
 
         Override paths set by ``DEFAULT_ENVIRONMENT_PATH_VARIABLE``.  By default
         this path will not be set, this is only an example.
+
         * ``/tmp/pyfarm/agent/1.2.3/agent.yml``
         * ``/tmp/pyfarm/agent/1.2/agent.yml``
         * ``/tmp/pyfarm/agent/1/agent.yml``
@@ -267,18 +268,21 @@ class Configuration(dict):
 
         Paths relative to the current working directory or the directory
         provided to ``cwd`` when :class:`Configuration` was instanced.
+
         * ``etc/pyfarm/agent/1.2.3/agent.yml``
         * ``etc/pyfarm/agent/1.2/agent.yml``
         * ``etc/pyfarm/agent/1/agent.yml``
         * ``etc/pyfarm/agent/agent.yml``
 
         User's home directory
+
         * ``~/.pyfarm/agent/1.2.3/agent.yml``
         * ``~/.pyfarm/agent/1.2/agent.yml``
         * ``~/.pyfarm/agent/1/agent.yml``
         * ``~/.pyfarm/agent/agent.yml``
 
         System level paths
+
         * ``/etc/pyfarm/agent/1.2.3/agent.yml``
         * ``/etc/pyfarm/agent/1.2/agent.yml``
         * ``/etc/pyfarm/agent/1/agent.yml``
