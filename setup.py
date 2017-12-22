@@ -44,7 +44,7 @@ setup(
     url="https://github.com/pyfarm/pyfarm-core",
     license="Apache v2.0",
     author="Oliver Palmer",
-    author_email="development@pyfarm.net",
+    author_email="pyfarm@googlegroups.com",
     description="Sub-library which contains core modules, "
                 "classes, and data types which are used by other "
                 "parts of PyFarm.",
